@@ -64,7 +64,7 @@ fun LoginScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState()) // ✅ Added safely
+                .verticalScroll(rememberScrollState()) 
                 .imePadding()
                 .padding(20.dp),
             verticalArrangement = Arrangement.Center
