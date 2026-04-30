@@ -5,6 +5,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -14,17 +16,30 @@ import com.google.firebase.firestore.FirebaseFirestore
 
 import com.social.vitadrop.data.remote.FirebaseAuthService
 import com.social.vitadrop.data.repository.AuthRepositoryImpl
+import com.social.vitadrop.data.repository.DashboardRepository
+import com.social.vitadrop.data.repository.DashboardRepositoryImpl
+import com.social.vitadrop.data.repository.DonorRepositoryImpl
+import com.social.vitadrop.data.repository.RequestRepositoryImpl
+import com.social.vitadrop.domain.repository.DonorRepository
 import com.social.vitadrop.domain.usecase.RegisterUserUseCase
 
 import com.social.vitadrop.presentation.screens.auth.RegisterScreen
 import com.social.vitadrop.presentation.screens.common.ProfileScreen
-import com.social.vitadrop.presentation.screens.donor.DashboardScreen
+import com.social.vitadrop.presentation.screens.common.RequestBloodScreen
+import com.social.vitadrop.presentation.screens.common.RequestListScreen
+
+import com.social.vitadrop.presentation.screens.donor.DonorDashboardScreen
+import com.social.vitadrop.presentation.screens.donor.DonorListScreen
 import com.social.vitadrop.presentation.splash.SplashScreen
 
 import com.social.vitadrop.presentation.viewmodel.AuthViewModel
 import com.social.vitadrop.presentation.viewmodel.AuthViewModelFactory
 import com.social.vitadrop.presentation.viewmodel.ProfileViewModel
 import com.social.vitadrop.presentation.viewmodel.RegisterViewModel
+
+import com.social.vitadrop.presentation.viewmodel.DonorDashboardViewModel
+import com.social.vitadrop.presentation.viewmodel.DonorViewModel
+import com.social.vitadrop.presentation.viewmodel.RequestViewModel
 
 import com.social.vitadrop.utils.SessionManager
 
@@ -35,9 +50,7 @@ fun NavGraph(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val session = SessionManager(context)
 
-
-
-    // ✅ SAFE ROLE HANDLING
+    // ✅ ROLE BASED START DESTINATION
     val startDestination = when (session.getUserRole()) {
         "donor" -> "dashboard/donor"
         "hospital" -> "dashboard/hospital"
@@ -48,14 +61,16 @@ fun NavGraph(modifier: Modifier = Modifier) {
 
     NavHost(
         navController = navController,
-        startDestination = "splash",
+        startDestination = "splash", // keep splash as entry
         modifier = modifier
     ) {
+
+        // 🌊 SPLASH
         composable("splash") {
             SplashScreen(navController)
         }
 
-        // 🔐 LOGIN SCREEN
+        // 🔐 LOGIN
         composable("login") {
 
             val viewModel: AuthViewModel = viewModel(
@@ -68,7 +83,7 @@ fun NavGraph(modifier: Modifier = Modifier) {
             )
         }
 
-        // 📝 REGISTER SCREEN
+        // 📝 REGISTER
         composable("register") {
 
             val registerViewModel = remember {
@@ -94,21 +109,72 @@ fun NavGraph(modifier: Modifier = Modifier) {
 
             when (role) {
 
-                "donor" -> DashboardScreen(navController)
+                // ✅ DONOR DASHBOARD (FIXED)
+                "donor" -> {
 
-                "hospital" -> DashboardScreen(navController)
+                    val donorViewModel: DonorDashboardViewModel = viewModel(
+                        factory = object : ViewModelProvider.Factory {
+                            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                                return DonorDashboardViewModel(
+                                    repository = DashboardRepositoryImpl()
+                                ) as T
+                            }
+                        }
+                    )
 
-                "admin" -> DashboardScreen(navController)
+                    DonorDashboardScreen(
+                        navController = navController,
+                        viewModel = donorViewModel
+                    )
+                }
 
-                "patient" -> DashboardScreen(navController)
+                // 🏥 OTHER ROLES (UNCHANGED)
+                "hospital" -> {
 
-                else -> DashboardScreen(navController)
+                    val donorViewModel: DonorDashboardViewModel = viewModel(
+                        factory = object : ViewModelProvider.Factory {
+                            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                                return DonorDashboardViewModel(
+                                    repository = DashboardRepositoryImpl()
+                                ) as T
+                            }
+                        }
+                    )
+
+                    DonorDashboardScreen(
+                        navController = navController,
+                        viewModel = donorViewModel
+                    )
+                }
+
+
+               // "admin" -> DashboardScreen(navController)
+
+               // "patient" -> DashboardScreen(navController)
+
+                else -> {
+
+                    val donorViewModel: DonorDashboardViewModel = viewModel(
+                        factory = object : ViewModelProvider.Factory {
+                            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                                return DonorDashboardViewModel(
+                                    repository = DashboardRepositoryImpl()
+                                ) as T
+                            }
+                        }
+                    )
+
+                    DonorDashboardScreen(
+                        navController = navController,
+                        viewModel = donorViewModel
+                    )
+                }
             }
         }
 
-        // 👤 PROFILE SCREEN
+        // 👤 PROFILE
         composable("profile") {
-            val context = LocalContext.current
+
             val sessionManager = remember { SessionManager(context) }
 
             val profileViewModel = remember {
@@ -117,10 +183,53 @@ fun NavGraph(modifier: Modifier = Modifier) {
                     auth = FirebaseAuth.getInstance()
                 )
             }
-            ProfileScreen(navController = navController,
+
+            ProfileScreen(
+                navController = navController,
                 viewModel = profileViewModel,
-                sessionManager = sessionManager)
+                sessionManager = sessionManager
+            )
         }
 
+        //
+        composable("requestBlood") {
+
+            val requestViewModel = remember {
+                RequestViewModel(
+                    repository = RequestRepositoryImpl()
+                )
+            }
+
+            RequestBloodScreen(
+                navController = navController,
+                viewModel = requestViewModel
+            )
+        }
+
+        composable("request_list") {
+
+            val donorDashboardViewModel = remember {
+                DonorDashboardViewModel(
+                    repository = DashboardRepositoryImpl()
+                )
+            }
+
+            RequestListScreen(navController = navController,
+                viewModel = donorDashboardViewModel
+            )
+        }
+
+        composable("donors_list") {
+
+            val donorDashboardViewModel = remember {
+                DonorViewModel(
+                    repository = DonorRepositoryImpl()
+                )
+            }
+
+            DonorListScreen(navController = navController,
+                viewModel = donorDashboardViewModel
+            )
+        }
     }
 }

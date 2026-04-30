@@ -3,6 +3,9 @@ plugins {
 
     alias(libs.plugins.kotlin.compose)
     id("com.google.gms.google-services")
+    //id("org.jetbrains.kotlin.kapt")
+    // ✅ Add this
+    id("com.google.devtools.ksp")
 }
 
 android {
@@ -94,6 +97,25 @@ dependencies {
     implementation("com.google.firebase:firebase-firestore")
     implementation(libs.androidx.ui)
     implementation(libs.androidx.compose.runtime)
+
+    // ✅ Room (Latest stable)
+    /*val room_version = "2.6.1"
+
+    implementation("androidx.room:room-runtime:$room_version")
+    implementation("androidx.room:room-ktx:$room_version")
+
+    kapt("androidx.room:room-compiler:$room_version")
+
+
+     */
+    val room_version = "2.6.1"
+
+    implementation("androidx.room:room-runtime:$room_version")
+    implementation("androidx.room:room-ktx:$room_version")
+
+    // ✅ KSP (modern)
+    ksp("androidx.room:room-compiler:$room_version")
+
 
     // Testing
     testImplementation(libs.junit)
