@@ -63,7 +63,7 @@ fun RegisterScreen(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // 🔥 ROLE BASED FORM
+        //  ROLE BASED FORM
         if (state.role.isNotEmpty()) {
 
             Card(shape = RoundedCornerShape(20.dp)) {
@@ -93,7 +93,7 @@ fun RegisterScreen(
 
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    // 👤 DONOR FIELDS
+                    //  DONOR FIELDS
                     if (state.role == "donor") {
 
                         OutlinedTextField(
@@ -139,7 +139,7 @@ fun RegisterScreen(
                         )
                     }
 
-                    // 🏥 HOSPITAL FIELDS
+                    //  HOSPITAL FIELDS
                     if (state.role == "hospital") {
 
                         OutlinedTextField(
@@ -200,7 +200,7 @@ fun RegisterScreen(
 
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    // 🚀 REGISTER BUTTON
+                    //  REGISTER BUTTON
                     Button(
                         onClick = {
                             viewModel.onEvent(RegisterEvent.Register)
