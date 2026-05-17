@@ -10,11 +10,7 @@ import kotlinx.coroutines.launch
 
 class NotificationViewModel : ViewModel() {
 
-    /**
-     * =====================================================
-     * MANUAL DEPENDENCY CREATION
-     * =====================================================
-     */
+
     private val repository =
         NotificationRepositoryImpl()
 
@@ -27,11 +23,9 @@ class NotificationViewModel : ViewModel() {
     private val auth =
         FirebaseAuth.getInstance()
 
-    /**
-     * =====================================================
-     * GENERATE + SAVE DONOR TOKEN
-     * =====================================================
-     */
+
+     // Generate + Save token
+
     fun generateAndSaveDonorToken() {
 
         viewModelScope.launch {
@@ -58,11 +52,9 @@ class NotificationViewModel : ViewModel() {
         }
     }
 
-    /**
-     * =====================================================
-     * GENERATE + SAVE HOSPITAL TOKEN
-     * =====================================================
-     */
+
+     // GENERATE + SAVE HOSPITAL TOKEN
+
     fun generateAndSaveHospitalToken() {
 
         viewModelScope.launch {

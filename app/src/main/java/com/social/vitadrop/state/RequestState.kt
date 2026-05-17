@@ -42,9 +42,9 @@ data class RequestState(
 
 data class RequestState(
 
-    // =========================
+
     // REQUEST INFO
-    // =========================
+
 
     val requestId: String = "",
 
@@ -52,10 +52,7 @@ data class RequestState(
 
     val hospitalId: String = "",
 
-
-    // =========================
     // PATIENT INFO
-    // =========================
 
     val patientName: String = "",
 
@@ -63,37 +60,25 @@ data class RequestState(
 
     val unitsRequired: String = "",
 
-
-    // =========================
     // CONTACT INFO
-    // =========================
 
     val contactPerson: String = "",
 
     val contactNumber: String = "",
 
-
-    // =========================
     // HOSPITAL INFO
-    // =========================
 
     val hospitalName: String = "",
 
     val city: String = "",
 
-
-    // =========================
     // LOCATION
-    // =========================
 
     val latitude: String = "",
 
     val longitude: String = "",
 
-
-    // =========================
     // REQUEST DETAILS
-    // =========================
 
     val requestType: String = "blood",
 
@@ -104,9 +89,7 @@ data class RequestState(
     val description: String = "",
 
 
-    // =========================
     // DONOR TRACKING
-    // =========================
 
     val acceptedDonors: List<String> = emptyList(),
 
@@ -114,17 +97,11 @@ data class RequestState(
 
     val completedBy: List<String> = emptyList(),
 
-
-    // =========================
     // EMERGENCY
-    // =========================
 
     val isEmergency: Boolean = false,
 
-
-    // =========================
     // UI STATES
-    // =========================
 
     val isLoading: Boolean = false,
 
@@ -133,9 +110,7 @@ data class RequestState(
     val errorMessage: String? = null,
 
 
-    // =========================
-    // REQUEST LIST
-    // =========================
 
+    // REQUEST LIST
     val requests: List<RequestModel> = emptyList()
 )

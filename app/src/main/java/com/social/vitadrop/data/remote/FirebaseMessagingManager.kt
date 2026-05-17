@@ -1,31 +1,5 @@
 package com.social.vitadrop.data.remote
 
-/*
-
-import com.google.firebase.messaging.FirebaseMessaging
-import kotlinx.coroutines.tasks.await
-
-class FirebaseMessagingManager {
-
-    /**
-     * =====================================================
-     * GET DEVICE FCM TOKEN
-     * =====================================================
-     */
-    suspend fun getToken(): String {
-
-        return FirebaseMessaging
-            .getInstance()
-            .token
-            .await()
-    }
-}
-
- */
-
-///
-
-
 import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -38,6 +12,7 @@ class FirebaseMessagingManager {
 
     private val firestore = FirebaseFirestore.getInstance()
 
+    // Token generator Method
     fun generateAndSaveToken() {
 
         val currentUser = auth.currentUser
@@ -78,6 +53,8 @@ class FirebaseMessagingManager {
             }
     }
 
+
+// Method To Save the Generated Token
     private fun saveTokenToFirestore(
         userId: String,
         token: String
@@ -109,7 +86,7 @@ class FirebaseMessagingManager {
             }
     }
 
-    //
+    // Method To Get Token
     suspend fun getToken(): String {
 
         return try {

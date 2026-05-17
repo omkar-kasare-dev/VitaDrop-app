@@ -28,9 +28,7 @@ class NotificationHelper(
     }
 
     /**
-     * =====================================================
      * CREATE NOTIFICATION CHANNEL
-     * =====================================================
      */
     fun createNotificationChannel() {
 
@@ -56,9 +54,7 @@ class NotificationHelper(
     }
 
     /**
-     * =====================================================
      * SHOW NOTIFICATION
-     * =====================================================
      */
     fun showNotification(
         title: String,

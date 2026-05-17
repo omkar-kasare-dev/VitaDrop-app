@@ -37,7 +37,7 @@ fun EmergencyCard(
             modifier = Modifier.padding(16.dp)
         ) {
 
-            // 🔴 HEADER
+            // HEADER
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -70,7 +70,7 @@ fun EmergencyCard(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // 👤 Patient Name
+            //  Patient Name
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.Person, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
@@ -79,7 +79,7 @@ fun EmergencyCard(
 
             Spacer(modifier = Modifier.height(6.dp))
 
-            // 🏥 Hospital
+            // Hospital
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.LocalHospital, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
@@ -88,7 +88,7 @@ fun EmergencyCard(
 
             Spacer(modifier = Modifier.height(6.dp))
 
-            // 📍 City
+            // City
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.LocationOn, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
@@ -97,7 +97,7 @@ fun EmergencyCard(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // 📞 CALL BUTTON
+            //CALL BUTTON
             Button(
                 onClick = { onCallClick(request.contactNumber) },
                 modifier = Modifier.fillMaxWidth(),
@@ -250,7 +250,7 @@ fun EmergencyCard(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // ⚡ QUICK ACTIONS
+            // QUICK ACTIONS
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)

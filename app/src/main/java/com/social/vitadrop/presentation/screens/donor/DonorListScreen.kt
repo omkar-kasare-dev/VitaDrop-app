@@ -151,10 +151,8 @@ fun DonorCard(donor: DonorModel) {
 
  */
 
+
 // Modified Donor List Screen
-
-
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box

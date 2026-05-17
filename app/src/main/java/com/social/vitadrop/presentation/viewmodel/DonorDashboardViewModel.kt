@@ -18,7 +18,7 @@ class DonorDashboardViewModel(
     val state: StateFlow<DonorDashboardState> = _state
 
     init {
-        // 🔥 AUTO LOAD (VERY IMPORTANT FIX)
+        //AUTO LOAD
         loadDashboard()
     }
 

@@ -19,9 +19,7 @@ class MyFirebaseMessagingService :
     FirebaseMessagingService() {
 
     /**
-     * =====================================================
      * NEW TOKEN GENERATED
-     * =====================================================
      */
     override fun onNewToken(token: String) {
 
@@ -34,9 +32,7 @@ class MyFirebaseMessagingService :
     }
 
     /**
-     * =====================================================
      * RECEIVE MESSAGE
-     * =====================================================
      */
     /*
     override fun onMessageReceived(
@@ -89,9 +85,7 @@ class MyFirebaseMessagingService :
     }
 
     /**
-     * =====================================================
      * SHOW LOCAL NOTIFICATION
-     * =====================================================
      */
     private fun showNotification(
         title: String,
@@ -107,9 +101,7 @@ class MyFirebaseMessagingService :
             ) as NotificationManager
 
         /**
-         * =================================================
          * CREATE CHANNEL
-         * =================================================
          */
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
 
@@ -125,9 +117,7 @@ class MyFirebaseMessagingService :
         }
 
         /**
-         * =================================================
          * BUILD NOTIFICATION
-         * =================================================
          */
         val notification =
             NotificationCompat.Builder(
@@ -153,5 +143,8 @@ class MyFirebaseMessagingService :
 
 
     // GetToken Suspend Function.
+
+
+
 
 }

@@ -365,7 +365,7 @@ class DashboardRepositoryImpl : DashboardRepository {
  */
 //===================================================
 
-
+// Updated DashBoardImplementation.
 
 import android.util.Log
 import com.google.firebase.firestore.DocumentSnapshot
@@ -377,11 +377,9 @@ class DashboardRepositoryImpl : DashboardRepository {
 
     private val db = FirebaseFirestore.getInstance()
 
-    /**
-     * ============================================================
-     * DONOR COUNT
-     * ============================================================
-     */
+
+     // DONOR COUNT
+
     override suspend fun getDonorCount(): Int {
 
         return try {
@@ -411,11 +409,9 @@ class DashboardRepositoryImpl : DashboardRepository {
         }
     }
 
-    /**
-     * ============================================================
-     * HOSPITAL COUNT
-     * ============================================================
-     */
+
+     //HOSPITAL COUNT
+
     override suspend fun getHospitalCount(): Int {
 
         return try {
@@ -445,11 +441,9 @@ class DashboardRepositoryImpl : DashboardRepository {
         }
     }
 
-    /**
-     * ============================================================
-     * REQUEST COUNT
-     * ============================================================
-     */
+
+     //REQUEST COUNT
+
     override suspend fun getRequestCount(): Int {
 
         return try {
@@ -479,11 +473,9 @@ class DashboardRepositoryImpl : DashboardRepository {
         }
     }
 
-    /**
-     * ============================================================
-     * EMERGENCY REQUESTS
-     * ============================================================
-     */
+
+     // EMERGENCY REQUESTS
+
     override suspend fun getEmergencyRequests(): List<RequestModel> {
 
         return try {
@@ -493,12 +485,7 @@ class DashboardRepositoryImpl : DashboardRepository {
                 "Fetching emergency requests..."
             )
 
-            /**
-             * ====================================================
-             * MODIFICATION:
-             * Using only "emergency" field.
-             * ====================================================
-             */
+
             val result = db.collection("requests")
                 .whereEqualTo("emergency", true)
                 .get()
@@ -509,13 +496,7 @@ class DashboardRepositoryImpl : DashboardRepository {
                 "Emergency Requests Count: ${result.size()}"
             )
 
-            /**
-             * ====================================================
-             * MODIFICATION:
-             * Added safe parsing using mapNotNull.
-             * One bad document will NOT crash entire list.
-             * ====================================================
-             */
+
             result.documents.mapNotNull { doc ->
 
                 try {
@@ -552,9 +533,7 @@ class DashboardRepositoryImpl : DashboardRepository {
     }
 
     /**
-     * ============================================================
      * ALL REQUESTS
-     * ============================================================
      */
     override suspend fun getAllRequests(): List<RequestModel> {
 
@@ -575,11 +554,9 @@ class DashboardRepositoryImpl : DashboardRepository {
             )
 
             /**
-             * ====================================================
              * MODIFICATION:
              * Added safe parsing using mapNotNull.
              * Prevents one bad document from crashing all requests.
-             * ====================================================
              */
             result.documents.mapNotNull { doc ->
 
@@ -616,11 +593,9 @@ class DashboardRepositoryImpl : DashboardRepository {
         }
     }
 
-    /**
-     * ============================================================
-     * DOCUMENT TO MODEL CONVERTER
-     * ============================================================
-     */
+
+     // DOCUMENT TO MODEL CONVERTER
+
     private fun DocumentSnapshot.toRequestModel(): RequestModel {
 
         /**
@@ -643,16 +618,12 @@ class DashboardRepositoryImpl : DashboardRepository {
         /**
          * ====================================================
          * MODIFICATION:
-         * Fixed unitsRequired parsing.
-         *
          * OLD:
          * getLong("unitsRequired")?.toString() ?: ""
-         *
          * NEW:
          * Handles BOTH:
          * - Number
          * - String
-         *
          * Prevents Firebase type mismatch crash.
          * ====================================================
          */
@@ -671,62 +642,46 @@ class DashboardRepositoryImpl : DashboardRepository {
 
         return RequestModel(
 
-            /**
-             * =================================================
-             * REQUEST INFO
-             * =================================================
-             */
+
+             //REQUEST INFO
+
             requestId = getString("requestId") ?: id,
 
             requestedBy = getString("requestedBy") ?: "",
 
             hospitalId = getString("hospitalId") ?: "",
 
-            /**
-             * =================================================
-             * PATIENT INFO
-             * =================================================
-             */
+
+             // PATIENT INFO
+
             patientName = getString("patientName") ?: "",
 
-            /**
-             * =================================================
-             * BLOOD INFO
-             * =================================================
-             */
+
+             // BLOOD INFORMATION
+
             bloodGroup = getString("bloodGroup") ?: "",
 
-            /**
-             * =================================================
-             * MODIFICATION:
-             * unitsRequired now uses Long.
-             * =================================================
-             */
+
+             // MODIFICATION:
+             // unitsRequired now uses Long.
+
             unitsRequired = unitsRequiredValue,
 
-            /**
-             * =================================================
-             * CONTACT INFO
-             * =================================================
-             */
+
+             // CONTACT INFORMATION
+
             contactPerson = getString("contactPerson") ?: "",
 
             contactPhone = getString("contactPhone") ?: "",
 
-            /**
-             * =================================================
-             * HOSPITAL INFO
-             * =================================================
-             */
+          // Hospital INfo
             hospitalName = getString("hospitalName") ?: "",
 
             city = getString("city") ?: "",
 
-            /**
-             * =================================================
-             * LOCATION
-             * =================================================
-             */
+
+             // LOCATION Information
+
             location = mapOf(
 
                 "latitude" to latitude,
@@ -734,22 +689,16 @@ class DashboardRepositoryImpl : DashboardRepository {
                 "longitude" to longitude
             ),
 
-            /**
-             * =================================================
-             * REQUEST DETAILS
-             * =================================================
-             */
+
             urgency = getString("urgency") ?: "medium",
 
             status = getString("status") ?: "pending",
 
             description = getString("description") ?: "",
 
-            /**
-             * =================================================
-             * DONOR TRACKING
-             * =================================================
-             */
+
+             // DONOR TRACKING
+
             acceptedDonors =
                 get("acceptedDonors") as? List<String>
                     ?: emptyList(),
@@ -762,18 +711,13 @@ class DashboardRepositoryImpl : DashboardRepository {
                 get("completedBy") as? List<String>
                     ?: emptyList(),
 
-            /**
-             * =================================================
-             * EMERGENCY
-             * =================================================
-             */
+
+             // EMERGENCY
+
             emergency = getBoolean("emergency") ?: false,
 
-            /**
-             * =================================================
-             * TIMESTAMP
-             * =================================================
-             */
+             //* TIMESTAMP
+
             createdAt = getTimestamp("createdAt")
                 ?.toDate()
                 ?.time

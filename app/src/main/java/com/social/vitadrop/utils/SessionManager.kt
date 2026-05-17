@@ -38,7 +38,7 @@ class SessionManager(context: Context) {
         return prefs.getBoolean(KEY_LOGIN, false)
     }
 
-    // CLEAR SESSION (LOGOUT)
+    // (LOGOUT)
     fun clearSession() {
         prefs.edit()
             .clear()

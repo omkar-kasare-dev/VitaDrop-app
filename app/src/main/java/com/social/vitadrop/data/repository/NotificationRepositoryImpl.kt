@@ -15,20 +15,16 @@ class NotificationRepositoryImpl :
     private val messagingManager =
         FirebaseMessagingManager()
 
-    /**
-     * =====================================================
-     * GET FCM TOKEN
-     * =====================================================
-     */
+
     override suspend fun getFCMToken(): String {
 
         return messagingManager.getToken()
     }
 
     /**
-     * =====================================================
+
      * SAVE DONOR TOKEN
-     * =====================================================
+
      */
     override suspend fun saveDonorToken(
         donorId: String,
@@ -46,9 +42,9 @@ class NotificationRepositoryImpl :
     }
 
     /**
-     * =====================================================
+
      * SAVE HOSPITAL TOKEN
-     * =====================================================
+
      */
     override suspend fun saveHospitalToken(
         hospitalId: String,

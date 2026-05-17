@@ -33,9 +33,9 @@ sealed class RequestEvent {
 
 sealed class RequestEvent {
 
-    // =========================
+
     // PATIENT INFO
-    // =========================
+
 
     data class OnPatientNameChange(
         val value: String
@@ -50,9 +50,9 @@ sealed class RequestEvent {
     ) : RequestEvent()
 
 
-    // =========================
+
     // HOSPITAL INFO
-    // =========================
+
 
     data class OnHospitalNameChange(
         val value: String
@@ -67,9 +67,9 @@ sealed class RequestEvent {
     ) : RequestEvent()
 
 
-    // =========================
+
     // CONTACT INFO
-    // =========================
+
 
     data class OnContactPersonChange(
         val value: String
@@ -80,9 +80,7 @@ sealed class RequestEvent {
     ) : RequestEvent()
 
 
-    // =========================
-    // REQUEST DETAILS
-    // =========================
+
 
     data class OnRequestTypeChange(
         val value: String
@@ -101,9 +99,9 @@ sealed class RequestEvent {
     ) : RequestEvent()
 
 
-    // =========================
+
     // LOCATION
-    // =========================
+
 
     data class OnLatitudeChange(
         val value: String
@@ -114,18 +112,18 @@ sealed class RequestEvent {
     ) : RequestEvent()
 
 
-    // =========================
+
     // EMERGENCY
-    // =========================
+
 
     data class OnEmergencyToggle(
         val value: Boolean
     ) : RequestEvent()
 
 
-    // =========================
+
     // REQUEST MANAGEMENT
-    // =========================
+
 
     object LoadEmergencyRequests : RequestEvent()
 
