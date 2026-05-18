@@ -14,7 +14,7 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.example.kotlinbasics"
+        applicationId = "com.social.vitadrop"
         minSdk = 24
         targetSdk = 36
         versionCode = 1
@@ -96,6 +96,12 @@ dependencies {
 
     implementation("com.google.firebase:firebase-messaging")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.1")
+
+    //
+
+    implementation("com.google.code.gson:gson:2.10.1")
+
+
     implementation(libs.androidx.ui)
     implementation(libs.androidx.compose.runtime)
 

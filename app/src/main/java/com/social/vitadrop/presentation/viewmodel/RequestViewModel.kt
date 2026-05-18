@@ -123,6 +123,7 @@ import com.social.vitadrop.state.RequestState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import android.util.Log
 
 class RequestViewModel(
     private val repository: RequestRepository
@@ -273,6 +274,30 @@ class RequestViewModel(
                     isSuccess = false,
                     errorMessage = null
                 )
+                // Validations for add request
+                /**
+                 * NEW CODE ADDED
+                 *
+                 * BASIC VALIDATION
+                 */
+                if (
+                    state.value.patientName.isBlank() ||
+                    state.value.bloodGroup.isBlank() ||
+                    state.value.hospitalName.isBlank()
+                ) {
+
+                    _state.value = _state.value.copy(
+                        isLoading = false,
+                        isSuccess = false,
+                        errorMessage =
+                            "Please fill all required fields"
+                    )
+
+                    return@launch
+                }
+
+
+                // Validation Ended.
 
                 val request = RequestModel(
 
@@ -333,7 +358,18 @@ class RequestViewModel(
                     createdAt = null
                 )
 
+               // repository.createRequest(request)
+                Log.d(
+                    "REQUEST_VIEWMODEL",
+                    "Creating emergency request..."
+                )
+
                 repository.createRequest(request)
+
+                Log.d(
+                    "REQUEST_VIEWMODEL",
+                    "Request created successfully"
+                )
 
                 _state.value = _state.value.copy(
 
@@ -370,7 +406,22 @@ class RequestViewModel(
                     isEmergency = false
                 )
 
-            } catch (e: Exception) {
+            }
+        catch (e: Exception) {
+
+            Log.e(
+                "REQUEST_VIEWMODEL",
+                "Request creation failed",
+                e
+            )
+
+            _state.value = _state.value.copy(
+                isLoading = false,
+                isSuccess = false,
+                errorMessage = e.message
+            )
+        }
+            /*catch (e: Exception) {
 
                 _state.value = _state.value.copy(
                     isLoading = false,
@@ -378,6 +429,8 @@ class RequestViewModel(
                     errorMessage = e.message
                 )
             }
+
+             */
         }
     }
 }

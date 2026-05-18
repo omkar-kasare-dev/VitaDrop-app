@@ -1,7 +1,5 @@
 package com.social.vitadrop.presentation.notification
 
-
-
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
@@ -9,55 +7,43 @@ import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.example.kotlinbasics.R
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
+
 import com.social.vitadrop.utils.NotificationHelper
-
-
 
 class MyFirebaseMessagingService :
     FirebaseMessagingService() {
 
+    // Firebase Firestore
+    private val firestore =
+        FirebaseFirestore.getInstance()
+
+    // Firebase Auth
+    private val auth =
+        FirebaseAuth.getInstance()
+
     /**
-     * NEW TOKEN GENERATED
+     * CALLED WHEN NEW FCM TOKEN GENERATED
      */
     override fun onNewToken(token: String) {
 
         super.onNewToken(token)
 
-        android.util.Log.d(
+        Log.d(
             "FCM_TOKEN",
-            token
+            "New Token: $token"
         )
+
+        // Save token into Firestore
+        saveTokenToFirestore(token)
     }
 
     /**
-     * RECEIVE MESSAGE
+     * RECEIVE PUSH NOTIFICATION
      */
-    /*
-    override fun onMessageReceived(
-        message: RemoteMessage
-    ) {
-
-        super.onMessageReceived(message)
-
-        val title =
-            message.notification?.title
-                ?: "Emergency Alert"
-
-        val body =
-            message.notification?.body
-                ?: "New emergency request"
-
-        showNotification(
-            title,
-            body
-        )
-    }
-
-     */
-
-    // Modified onMessageReceived.
     override fun onMessageReceived(
         message: RemoteMessage
     ) {
@@ -69,31 +55,103 @@ class MyFirebaseMessagingService :
             "Message Received"
         )
 
+        /**
+         * LOG FULL DATA PAYLOAD
+         */
+        Log.d(
+            "FCM_DATA",
+            message.data.toString()
+        )
+
+        // Notification Title
         val title =
             message.notification?.title
-                ?: "Emergency Request"
+                ?: "Emergency Alert"
 
+        // Notification Body
         val body =
             message.notification?.body
-                ?: "New blood request arrived"
+                ?: "New blood request received"
 
+        /**
+         * SHOW NOTIFICATION USING HELPER
+         */
         NotificationHelper(this)
             .showNotification(
                 title = title,
                 body = body
             )
+
+        /**
+         * OPTIONAL:
+         * LOCAL FALLBACK NOTIFICATION
+         *
+         * Uncomment if NotificationHelper fails.
+         */
+
+
+        showLocalNotification(
+            title,
+            body
+        )
+
     }
 
     /**
-     * SHOW LOCAL NOTIFICATION
+     * SAVE TOKEN INTO FIRESTORE
      */
-    private fun showNotification(
+    private fun saveTokenToFirestore(
+        token: String
+    ) {
+
+        val currentUser =
+            auth.currentUser
+
+        if (currentUser == null) {
+
+            Log.d(
+                "FCM_TOKEN",
+                "User not logged in"
+            )
+
+            return
+        }
+
+        firestore.collection("donors")
+            .document(currentUser.uid)
+            .update(
+                "fcmToken",
+                token
+            )
+            .addOnSuccessListener {
+
+                Log.d(
+                    "FCM_TOKEN",
+                    "Token saved successfully"
+                )
+            }
+            .addOnFailureListener {
+
+                Log.e(
+                    "FCM_TOKEN",
+                    "Failed to save token",
+                    it
+                )
+            }
+    }
+
+    /**
+     * OPTIONAL LOCAL NOTIFICATION METHOD
+     *
+     * Backup notification system
+     */
+    private fun showLocalNotification(
         title: String,
         body: String
     ) {
 
         val channelId =
-            "emergency_channel"
+            "vitadrop_channel"
 
         val notificationManager =
             getSystemService(
@@ -108,7 +166,7 @@ class MyFirebaseMessagingService :
             val channel =
                 NotificationChannel(
                     channelId,
-                    "Emergency Notifications",
+                    "VitaDrop Notifications",
                     NotificationManager.IMPORTANCE_HIGH
                 )
 
@@ -125,7 +183,7 @@ class MyFirebaseMessagingService :
                 channelId
             )
                 .setSmallIcon(
-                    R.drawable.ic_notification
+                    R.drawable.ic_launcher_foreground
                 )
                 .setContentTitle(title)
                 .setContentText(body)
@@ -140,11 +198,4 @@ class MyFirebaseMessagingService :
             notification
         )
     }
-
-
-    // GetToken Suspend Function.
-
-
-
-
 }
