@@ -174,7 +174,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Bloodtype
 import androidx.compose.material.icons.filled.Call
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material3.Card
@@ -185,6 +187,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -239,6 +243,32 @@ fun DonorListScreen(
                     }
                 }
             )
+        },
+        // Navigation Bar
+        bottomBar = {
+            NavigationBar {
+
+                NavigationBarItem(
+                    selected = true,
+                    onClick = { },
+                    icon = { Icon(Icons.Default.Home, null) },
+                    label = { Text("Home") }
+                )
+
+                NavigationBarItem(
+                    selected = false,
+                    onClick = { navController.navigate("donors_list") },
+                    icon = { Icon(Icons.Default.People, null) },
+                    label = { Text("Donors") }
+                )
+
+                NavigationBarItem(
+                    selected = false,
+                    onClick = { navController.navigate("request_list") },
+                    icon = { Icon(Icons.Default.Bloodtype, null) },
+                    label = { Text("Request") }
+                )
+            }
         }
 
     ) { padding ->

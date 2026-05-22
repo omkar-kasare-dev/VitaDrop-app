@@ -2,6 +2,7 @@ package com.social.vitadrop.presentation.screens.donor
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -11,12 +12,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AddAlert
 import androidx.compose.material.icons.filled.Bloodtype
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.NavigationBar
@@ -35,10 +35,23 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.social.vitadrop.presentation.event.DonorDashboardEvent
-import com.social.vitadrop.presentation.event.RequestEvent
 import com.social.vitadrop.presentation.screens.donor.components.EmergencyListUI
 import com.social.vitadrop.presentation.screens.donor.components.StatsSectionUI
 import com.social.vitadrop.presentation.viewmodel.DonorDashboardViewModel
+
+// AI Assistant Imports
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.outlined.Psychology
+import androidx.compose.material3.*
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.text.font.FontWeight
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -105,24 +118,176 @@ fun DonorDashboardScreen(
                 NavigationBarItem(
                     selected = false,
                     onClick = { navController.navigate("request_list") },
+                    icon = { Icon(Icons.Default.AddAlert, null) },
+                    label = { Text("List") }
+                )
+
+                NavigationBarItem(
+                    selected = false,
+                    onClick = { navController.navigate("requestBlood") },
                     icon = { Icon(Icons.Default.Bloodtype, null) },
-                    label = { Text("Request") }
+                    label = { Text("Request Blood") }
                 )
             }
         },
 
         // FAB
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = {
-                    //navController.navigate("addDonor")
-                    navController.navigate("requestBlood")
-                },
-                containerColor = Color(0xFFD32F2F)
+
+            // Soft Breathing Animation
+            val infiniteTransition =
+                rememberInfiniteTransition(
+                    label = "ai_button_anim"
+                )
+
+            val scale by infiniteTransition.animateFloat(
+
+                initialValue = 1f,
+
+                targetValue = 1.04f,
+
+                animationSpec = infiniteRepeatable(
+
+                    animation = tween(
+                        durationMillis = 1400
+                    ),
+
+                    repeatMode = RepeatMode.Reverse
+                ),
+
+                label = "scale_animation"
+            )
+
+            Row(
+
+                modifier = Modifier
+                    .scale(scale)
+                    .padding(end = 6.dp),
+
+                verticalAlignment =
+                    Alignment.CenterVertically
             ) {
-                Icon(Icons.Default.Add, null)
+
+                // ============================================
+                // TEXT SECTION
+                // ============================================
+
+                Card(
+
+                    onClick = {
+
+                        navController.navigate(
+                            "chat_assistant"
+                        )
+                    },
+
+                    shape = RoundedCornerShape(18.dp),
+
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color(0xFF1E293B)
+                    ),
+
+                    elevation = CardDefaults.cardElevation(
+                        defaultElevation = 8.dp
+                    )
+                ) {
+
+                    Row(
+
+                        modifier = Modifier.padding(
+                            horizontal = 16.dp,
+                            vertical = 12.dp
+                        ),
+
+                        verticalAlignment =
+                            Alignment.CenterVertically
+                    ) {
+
+                        Column {
+
+                            Text(
+
+                                text = "Hemora AI",
+
+                                color = Color.White,
+
+                                style =
+                                    MaterialTheme.typography.titleSmall,
+
+                                fontWeight = FontWeight.Bold
+                            )
+
+
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(10.dp))
+
+                // ============================================
+                // AI SYMBOL SECTION
+                // ============================================
+
+                FloatingActionButton(
+
+                    onClick = {
+
+                        navController.navigate(
+                            "chat_assistant"
+                        )
+                    },
+
+                    modifier = Modifier.size(58.dp),
+
+                    shape = CircleShape,
+
+                    containerColor = Color.Transparent,
+
+                    elevation =
+                        FloatingActionButtonDefaults.elevation(
+                            defaultElevation = 10.dp
+                        )
+                ) {
+
+                    Box(
+
+                        modifier = Modifier
+                            .fillMaxSize()
+
+                            .background(
+
+                                brush = Brush.linearGradient(
+                                    colors = listOf(
+                                        Color(0xFF06B6D4),
+                                        Color(0xFF3B82F6)
+                                    )
+                                ),
+
+                                shape = CircleShape
+                            ),
+
+                        contentAlignment = Alignment.Center
+                    ) {
+
+                        Icon(
+
+                            imageVector =
+                                Icons.Outlined.Psychology,
+
+                            contentDescription = null,
+
+                            tint = Color.White,
+
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
+                }
             }
         }
+
+        // AI Assistant:
+
+
 
     ) { padding ->
 

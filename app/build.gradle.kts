@@ -1,3 +1,4 @@
+import com.android.build.gradle.internal.cxx.configure.gradleLocalProperties
 plugins {
     alias(libs.plugins.android.application)
 
@@ -21,6 +22,18 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Gemini API Key
+
+        val apiKey =
+            gradleLocalProperties(rootDir, providers)
+                .getProperty("GEMINI_API_KEY")
+
+        buildConfigField(
+            "String",
+            "GEMINI_API_KEY",
+            "\"$apiKey\""
+        )
     }
 
     buildTypes {
@@ -42,6 +55,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -112,6 +126,13 @@ dependencies {
 
     //KSP (modern)
     ksp("androidx.room:room-compiler:$room_version")
+
+    // Personal AI Assistant
+    implementation("androidx.compose.material:material-icons-extended")
+    implementation(
+        "com.google.ai.client.generativeai:generativeai:0.9.0"
+    )
+
 
 
     // Testing

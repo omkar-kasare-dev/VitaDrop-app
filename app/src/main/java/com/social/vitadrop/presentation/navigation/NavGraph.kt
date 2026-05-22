@@ -24,6 +24,7 @@ import com.social.vitadrop.domain.repository.DonorRepository
 import com.social.vitadrop.domain.usecase.RegisterUserUseCase
 
 import com.social.vitadrop.presentation.screens.auth.RegisterScreen
+import com.social.vitadrop.presentation.screens.common.ChatScreen
 import com.social.vitadrop.presentation.screens.common.ProfileScreen
 import com.social.vitadrop.presentation.screens.common.RequestBloodScreen
 import com.social.vitadrop.presentation.screens.common.RequestListScreen
@@ -34,6 +35,7 @@ import com.social.vitadrop.presentation.splash.SplashScreen
 
 import com.social.vitadrop.presentation.viewmodel.AuthViewModel
 import com.social.vitadrop.presentation.viewmodel.AuthViewModelFactory
+import com.social.vitadrop.presentation.viewmodel.ChatViewModel
 import com.social.vitadrop.presentation.viewmodel.ProfileViewModel
 import com.social.vitadrop.presentation.viewmodel.RegisterViewModel
 
@@ -191,6 +193,7 @@ fun NavGraph(modifier: Modifier = Modifier) {
             )
         }
 
+
         //
         composable("requestBlood") {
 
@@ -231,5 +234,16 @@ fun NavGraph(modifier: Modifier = Modifier) {
                 viewModel = donorDashboardViewModel
             )
         }
+
+        // AI Assistant
+        composable(
+            route = "chat_assistant"
+        ) {
+
+            ChatScreen(
+                navController = navController
+            )
+        }
+
     }
 }
