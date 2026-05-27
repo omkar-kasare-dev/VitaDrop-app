@@ -1,6 +1,6 @@
 package com.social.vitadrop.presentation.navigation
 
-import LoginScreen
+
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -22,6 +22,7 @@ import com.social.vitadrop.data.repository.DonorRepositoryImpl
 import com.social.vitadrop.data.repository.RequestRepositoryImpl
 import com.social.vitadrop.domain.repository.DonorRepository
 import com.social.vitadrop.domain.usecase.RegisterUserUseCase
+import com.social.vitadrop.presentation.screens.auth.LoginScreen
 
 import com.social.vitadrop.presentation.screens.auth.RegisterScreen
 import com.social.vitadrop.presentation.screens.common.ChatScreen

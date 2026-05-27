@@ -16,13 +16,6 @@ fun EmergencyListUI(emergencyRequests: List<RequestModel>) {
 
     Column {
 
-        Text(
-            text = " Emergency Blood Requests",
-            style = MaterialTheme.typography.titleMedium,
-            color = Color.Red
-        )
-
-        Spacer(modifier = Modifier.height(10.dp))
 
         if (emergencyRequests.isEmpty()) {
 
@@ -32,7 +25,7 @@ fun EmergencyListUI(emergencyRequests: List<RequestModel>) {
 
             Column(
                 modifier = Modifier
-                    .heightIn(max = 325.dp)
+                    .heightIn(max = 525.dp)
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {

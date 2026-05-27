@@ -293,34 +293,6 @@ fun RequestListScreen(
             )
         },
 
-        // Bottom Navigation Bar
-
-        bottomBar = {
-            NavigationBar {
-
-                NavigationBarItem(
-                    selected = true,
-                    onClick = { },
-                    icon = { Icon(Icons.Default.Home, null) },
-                    label = { Text("Home") }
-                )
-
-                NavigationBarItem(
-                    selected = false,
-                    onClick = { navController.navigate("donors_list") },
-                    icon = { Icon(Icons.Default.People, null) },
-                    label = { Text("Donors") }
-                )
-
-                NavigationBarItem(
-                    selected = false,
-                    onClick = { navController.navigate("request_list") },
-                    icon = { Icon(Icons.Default.Bloodtype, null) },
-                    label = { Text("Request") }
-                )
-            }
-        }
-
     ) { padding ->
 
         Box(
