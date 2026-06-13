@@ -41,7 +41,29 @@ class FirebaseMessagingManager {
                     userId = currentUser.uid,
                     token = token
                 )
+
+                FirebaseMessaging.getInstance()
+                    .subscribeToTopic("donors")
+                    .addOnCompleteListener { task ->
+
+                        if (task.isSuccessful) {
+
+                            Log.d(
+                                "FCM_TOPIC",
+                                "Subscribed to donors topic"
+                            )
+
+                        } else {
+
+                            Log.e(
+                                "FCM_TOPIC",
+                                "Subscription failed",
+                                task.exception
+                            )
+                        }
+                    }
             }
+
 
             .addOnFailureListener {
 

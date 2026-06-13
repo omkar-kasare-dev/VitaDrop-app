@@ -66,8 +66,9 @@ const { onDocumentCreated } = require("firebase-functions/v2/firestore");
 exports.onRequestCreated = onDocumentCreated(
     "requests/{requestId}",
     async (event) => {
-
+        console.log("🔥 FUNCTION TRIGGERED");
         const data = event.data.data();
+        console.log("🔥 DATA:", JSON.stringify(data));
 
         console.log(" NEW REQUEST TRIGGERED");
         console.log("DATA:", data);

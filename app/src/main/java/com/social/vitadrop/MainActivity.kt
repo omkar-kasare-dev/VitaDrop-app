@@ -2,6 +2,8 @@ package com.social.vitadrop
 
 import android.os.Bundle
 import android.util.Log
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -22,6 +24,13 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        FirebaseFirestore.getInstance()
+            .useEmulator("172.20.175.225", 8080)
+
+        FirebaseAuth.getInstance()
+            .useEmulator("172.20.175.225", 9099)
+
 
         // =========================
         // FCM TOKEN (FIXED - ONLY ONCE)

@@ -80,18 +80,14 @@ dependencies {
 
     // Material 3
     implementation(libs.androidx.compose.material3)
-    implementation("androidx.compose.material3:material3:1.2.1")
-    implementation("androidx.compose.material3:material3")
+    implementation("androidx.compose.foundation:foundation")
 
+    //Retrofit
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
 
-
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.2")
-    implementation("androidx.navigation:navigation-compose:2.7.0")
-
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android")
-
+    // Coroutines
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
     implementation("androidx.compose.material:material-icons-extended")
 
     // Navigation (Needed for Login/Register navigation)
@@ -100,19 +96,14 @@ dependencies {
     // Lifecycle ViewModel for Compose
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.4")
 
-    // Coroutines
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
-
     //firebase
     implementation(platform("com.google.firebase:firebase-bom:32.7.2"))
     implementation("com.google.firebase:firebase-auth-ktx")
     implementation("com.google.firebase:firebase-firestore")
-
     implementation("com.google.firebase:firebase-messaging")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.1")
 
-    //
-
+    //google gson
     implementation("com.google.code.gson:gson:2.10.1")
 
 
@@ -128,7 +119,6 @@ dependencies {
     ksp("androidx.room:room-compiler:$room_version")
 
     // Personal AI Assistant
-    implementation("androidx.compose.material:material-icons-extended")
     implementation(
         "com.google.ai.client.generativeai:generativeai:0.9.0"
     )

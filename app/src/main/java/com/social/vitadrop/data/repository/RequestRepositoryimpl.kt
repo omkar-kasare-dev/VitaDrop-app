@@ -46,6 +46,7 @@ class RequestRepositoryImpl : RequestRepository {
 // Modified Request Repository File;
 
 
+import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
@@ -241,9 +242,25 @@ class RequestRepositoryImpl : RequestRepository {
         /**
          * SAVE REQUEST
          */
-        requestRef
-            .set(data)
-            .await()
+        try {
+            Log.d("REQUEST_DEBUG", "Saving request")
+            requestRef
+                .set(data)
+                .await()
+
+            Log.d(
+                "REQUEST_DEBUG",
+                "SAVE SUCCESS"
+            )
+
+        } catch (e: Exception) {
+
+            Log.e(
+                "REQUEST_DEBUG",
+                "SAVE FAILED",
+                e
+            )
+        }
 
         /**
          * NEW CODE ADDED

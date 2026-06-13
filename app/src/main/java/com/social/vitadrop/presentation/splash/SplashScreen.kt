@@ -278,13 +278,7 @@ fun SplashScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            // TAGLINE
-            Text(
-                text = "Every drop can save\na precious life.",
-                fontSize = 20.sp,
-                color = Color.DarkGray,
-                lineHeight = 30.sp
-            )
+
         }
 
         // BOTTOM SECTION
