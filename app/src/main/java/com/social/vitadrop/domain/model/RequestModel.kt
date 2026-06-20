@@ -55,14 +55,22 @@ data class RequestModel(
     ),
 
     // REQUEST DETAILS
-    val urgency: String = "medium", // low / medium / high
+    val urgency: String = "medium",
 
-    val status: String = "pending", // pending/accepted/in_progress/completed/cancelled/expired
+    val status: String = "pending",
 
     val description: String = "",
 
     // DONOR TRACKING
     val acceptedDonors: List<String> = emptyList(),
+    // NOTIFICATION TRACKING
+    val notificationRadius: Int = 5,
+
+    val acceptedBy: String = "",
+
+    val notificationStartedAt: Long? = null,
+
+    val notifiedDonors: List<String> = emptyList(),
 
     val rejectedDonors: List<String> = emptyList(),
 

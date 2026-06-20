@@ -364,6 +364,22 @@ class RequestViewModel(
                     "Creating emergency request..."
                 )
 
+                // Logs. 06/13/2026
+                Log.d(
+                    "REQUEST_LOCATION",
+                    "Latitude = ${state.value.latitude}"
+                )
+
+                Log.d(
+                    "REQUEST_LOCATION",
+                    "Longitude = ${state.value.longitude}"
+                )
+
+                Log.d(
+                    "REQUEST_LOCATION",
+                    request.location.toString()
+                )
+
                 repository.createRequest(request)
 
                 Log.d(

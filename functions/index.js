@@ -1,9 +1,6 @@
-
-
 const {setGlobalOptions} = require("firebase-functions");
 const {onRequest} = require("firebase-functions/https");
 const logger = require("firebase-functions/logger");
-
 
 /*
 const functions = require("firebase-functions");
@@ -51,40 +48,31 @@ exports.sendPushNotification = functions.https.onRequest(async (req, res) => {
 });
 */
 //======================================
+/*
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 
 admin.initializeApp();
 
 const { onDocumentCreated } = require("firebase-functions/v2/firestore");
-
-
-// ============================================
 // EMERGENCY REQUEST TRIGGER (PRODUCTION)
 // COLLECTION: requests
-// ============================================
 exports.onRequestCreated = onDocumentCreated(
     "requests/{requestId}",
     async (event) => {
-        console.log("🔥 FUNCTION TRIGGERED");
+        console.log(" FUNCTION TRIGGERED");
         const data = event.data.data();
-        console.log("🔥 DATA:", JSON.stringify(data));
+        console.log("DATA:", JSON.stringify(data));
 
         console.log(" NEW REQUEST TRIGGERED");
         console.log("DATA:", data);
-
-        // =========================
         // Extract your fields
-        // =========================
         const bloodGroup = data.bloodGroup || "Unknown";
         const hospitalName = data.hospitalName || "Hospital";
         const unitsRequired = data.unitsRequired || "1";
         const city = data.city || "";
         const urgency = data.urgency || "normal";
-
-        // =========================
         // Build notification
-        // =========================
         const message = {
             topic: "donors",   // ALL DONORS SUBSCRIBED TO THIS TOPIC
             notification: {
@@ -126,4 +114,22 @@ exports.testPush = functions.https.onRequest(async (req, res) => {
 });
 
 setGlobalOptions({ maxInstances: 10 });
+*/
+const admin = require("firebase-admin");
+
+admin.initializeApp();
+
+const {
+    onRequestCreated
+} = require("./triggers/requestTrigger");
+
+const {
+    radiusExpansionScheduler
+} = require("./schedulers/radiusExpansionScheduler");
+
+exports.onRequestCreated =
+    onRequestCreated;
+
+exports.radiusExpansionScheduler =
+    radiusExpansionScheduler;
 

@@ -19,10 +19,14 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 
 import com.google.firebase.messaging.FirebaseMessaging
+import com.social.vitadrop.utils.FirebaseProvider
 
 class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
+
+       // FirebaseProvider.firestore
+     //   FirebaseProvider.auth
         super.onCreate(savedInstanceState)
 
         FirebaseFirestore.getInstance()
@@ -30,6 +34,8 @@ class MainActivity : ComponentActivity() {
 
         FirebaseAuth.getInstance()
             .useEmulator("172.20.175.225", 9099)
+
+
 
 
         // =========================

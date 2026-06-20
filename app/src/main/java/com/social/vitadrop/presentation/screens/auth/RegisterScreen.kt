@@ -478,6 +478,15 @@ import com.example.kotlinbasics.R
 import com.social.vitadrop.presentation.event.RegisterEvent
 import com.social.vitadrop.presentation.viewmodel.RegisterViewModel
 
+import android.Manifest
+import android.util.Log
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalContext
+
+import com.social.vitadrop.utils.LocationHelper
+
 @Composable
 fun RegisterScreen(
     navController: NavController,
@@ -485,6 +494,100 @@ fun RegisterScreen(
 ) {
 
     val state by viewModel.state.collectAsState()
+
+    // Location
+    val context = LocalContext.current
+
+    val locationHelper =
+        remember {
+            LocationHelper(context)
+        }
+
+    //
+    val locationPermissionLauncher =
+        rememberLauncherForActivityResult(
+            contract =
+                ActivityResultContracts.RequestPermission()
+
+        ) { granted ->
+
+            if (granted) {
+
+                locationHelper.getCurrentLocation(
+
+                    onSuccess = { lat, lng ->
+
+                        viewModel.onEvent(
+
+                            RegisterEvent.UpdateField(
+
+                                latitude =
+                                    lat.toString(),
+
+                                longitude =
+                                    lng.toString()
+                            )
+                        )
+
+                        Log.d(
+                            "REGISTER_GPS",
+                            "Lat=$lat Lng=$lng"
+                        )
+                    },
+
+                    onFailure = {
+
+                        Log.e(
+                            "REGISTER_GPS",
+                            it?.message ?: "Error"
+                        )
+                    }
+                )
+            }
+        }
+    // Launched Effect:
+    LaunchedEffect(Unit) {
+
+        if (
+            locationHelper
+                .hasLocationPermission()
+        ) {
+
+            locationHelper
+                .getCurrentLocation(
+
+                    onSuccess = { lat, lng ->
+
+                        viewModel.onEvent(
+
+                            RegisterEvent.UpdateField(
+
+                                latitude =
+                                    lat.toString(),
+
+                                longitude =
+                                    lng.toString()
+                            )
+                        )
+                    },
+
+                    onFailure = {
+
+                        Log.e(
+                            "REGISTER_GPS",
+                            it?.message ?: ""
+                        )
+                    }
+                )
+
+        } else {
+
+            locationPermissionLauncher.launch(
+                Manifest.permission.ACCESS_FINE_LOCATION
+            )
+        }
+    }
+    // End Location Section
 
     val redPrimary = Color(0xFFD50000)
     val redDark = Color(0xFFB71C1C)
@@ -914,7 +1017,17 @@ fun DonorFields(
         },
         label = "Address"
     )
+    Spacer(modifier = Modifier.height(14.dp))
+    Text(
+        text =
+            "Lat : ${state.latitude}\n" +
+                    "Lng : ${state.longitude}"
+    )
+
 }
+
+
+
 
 // ================= HOSPITAL FIELDS =================
 

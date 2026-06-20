@@ -369,18 +369,32 @@ import com.social.vitadrop.presentation.screens.donor.components.EmergencyListUI
 import com.social.vitadrop.presentation.screens.donor.components.StatsSectionUI
 import com.social.vitadrop.presentation.viewmodel.DonorDashboardViewModel
 
+import android.content.Intent
+import android.net.Uri
+import android.util.Log
+import androidx.compose.ui.platform.LocalContext
+import com.social.vitadrop.presentation.event.EmergencyEvent
+import com.social.vitadrop.presentation.viewmodel.EmergencyViewModel
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DonorDashboardScreen(
     navController: NavController,
-    viewModel: DonorDashboardViewModel
+    viewModel: DonorDashboardViewModel,
 ) {
 
     val state by viewModel.state.collectAsState()
 
+    val context = LocalContext.current
+
+
+    //===============
+
+
     val primaryRed = Color(0xFFD50000)
 
     LaunchedEffect(Unit) {
+        Log.d("Dashboard", "LoadDashboard called")
         viewModel.onEvent(
             DonorDashboardEvent.LoadDashboard
         )
@@ -675,11 +689,46 @@ fun DonorDashboardScreen(
                 }
             }
 
+/*
             item {
+
                 EmergencyListUI(
-                    state.emergencyRequests
+
+                    emergencyRequests =
+                        state.emergencyRequests,
+
+                    respondedRequests =
+                        emergencyState.respondedRequests,
+
+                    responseCounts =
+                        emergencyState.responseCounts,
+
+                    onCallClick = { phone ->
+
+                        val intent = Intent(
+                            Intent.ACTION_DIAL,
+                            Uri.parse("tel:$phone")
+                        )
+
+                        context.startActivity(intent)
+                    },
+
+                    onQuickResponse = { request ->
+
+                        emergencyViewModel.onEvent(
+
+                            EmergencyEvent
+                                .RespondToRequest(
+                                    request.requestId
+                                )
+                        )
+                    }
                 )
             }
+
+ */
+
+
 /*
             item {
                 Spacer(modifier = Modifier.height(90.dp))

@@ -20,8 +20,12 @@ import com.social.vitadrop.data.repository.DashboardRepository
 import com.social.vitadrop.data.repository.DashboardRepositoryImpl
 import com.social.vitadrop.data.repository.DonorRepositoryImpl
 import com.social.vitadrop.data.repository.RequestRepositoryImpl
+import com.social.vitadrop.data.repository.ResponseRepositoryImpl
 import com.social.vitadrop.domain.repository.DonorRepository
+import com.social.vitadrop.domain.usecase.HasRespondedUseCase
+import com.social.vitadrop.domain.usecase.ObserveResponseCountUseCase
 import com.social.vitadrop.domain.usecase.RegisterUserUseCase
+import com.social.vitadrop.domain.usecase.RespondToRequestUseCase
 import com.social.vitadrop.presentation.screens.auth.LoginScreen
 
 import com.social.vitadrop.presentation.screens.auth.RegisterScreen
@@ -42,7 +46,9 @@ import com.social.vitadrop.presentation.viewmodel.RegisterViewModel
 
 import com.social.vitadrop.presentation.viewmodel.DonorDashboardViewModel
 import com.social.vitadrop.presentation.viewmodel.DonorViewModel
+import com.social.vitadrop.presentation.viewmodel.EmergencyViewModel
 import com.social.vitadrop.presentation.viewmodel.RequestViewModel
+import com.social.vitadrop.utils.FirebaseProvider
 
 import com.social.vitadrop.utils.SessionManager
 
@@ -125,8 +131,12 @@ fun NavGraph(modifier: Modifier = Modifier) {
                         }
                     )
 
+
+
                     DonorDashboardScreen(
+
                         navController = navController,
+
                         viewModel = donorViewModel
                     )
                 }
@@ -144,9 +154,14 @@ fun NavGraph(modifier: Modifier = Modifier) {
                         }
                     )
 
+
+
                     DonorDashboardScreen(
+
                         navController = navController,
+
                         viewModel = donorViewModel
+
                     )
                 }
 
@@ -167,10 +182,14 @@ fun NavGraph(modifier: Modifier = Modifier) {
                         }
                     )
 
+
+
                     DonorDashboardScreen(
                         navController = navController,
                         viewModel = donorViewModel
                     )
+
+
                 }
             }
         }

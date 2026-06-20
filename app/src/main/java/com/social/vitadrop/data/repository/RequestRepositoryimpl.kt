@@ -44,8 +44,6 @@ class RequestRepositoryImpl : RequestRepository {
  */
 
 // Modified Request Repository File;
-
-
 import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
@@ -140,13 +138,8 @@ class RequestRepositoryImpl : RequestRepository {
 
  */
 
-//=============================================
-
-
-
-
 import com.social.vitadrop.notification.FCMNotificationSender
-import kotlinx.coroutines.tasks.await
+
 
 class RequestRepositoryImpl : RequestRepository {
 
@@ -226,6 +219,15 @@ class RequestRepositoryImpl : RequestRepository {
             // DONOR TRACKING
             "acceptedDonors" to request.acceptedDonors,
 
+            // NOTIFICATION TRACKING
+            "notificationRadius" to 5,
+
+            "acceptedBy" to "",
+
+            "notifiedDonors" to emptyList<String>(),
+
+            "notificationStartedAt" to FieldValue.serverTimestamp(),
+
             "rejectedDonors" to request.rejectedDonors,
 
             "completedBy" to request.completedBy,
@@ -244,6 +246,14 @@ class RequestRepositoryImpl : RequestRepository {
          */
         try {
             Log.d("REQUEST_DEBUG", "Saving request")
+            Log.d(
+                "REQUEST_LOCATION",
+                request.location.toString()
+            )
+            Log.d(
+                "REQUEST_DATA",
+                data.toString()
+            )
             requestRef
                 .set(data)
                 .await()
@@ -262,20 +272,11 @@ class RequestRepositoryImpl : RequestRepository {
             )
         }
 
-        /**
-         * NEW CODE ADDED
-         *
-         * SEND EMERGENCY NOTIFICATIONS
-         */
-        sendEmergencyNotifications(request)
     }
 
-    /**
-     * NEW FUNCTION ADDED
-     *
-     * FIND MATCHING DONORS
-     * AND SEND FCM NOTIFICATIONS
-     */
+
+     // NEW FUNCTION ADDEd FIND MATCHING DONORS
+/*
     private suspend fun sendEmergencyNotifications(
         request: RequestModel
     ) {
@@ -336,5 +337,5 @@ class RequestRepositoryImpl : RequestRepository {
 
             e.printStackTrace()
         }
-    }
+    }*/
 }

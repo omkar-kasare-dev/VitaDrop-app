@@ -109,6 +109,7 @@ dependencies {
 
     implementation(libs.androidx.ui)
     implementation(libs.androidx.compose.runtime)
+    implementation(libs.play.services.location)
 
     val room_version = "2.6.1"
 
