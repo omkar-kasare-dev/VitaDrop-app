@@ -225,6 +225,8 @@ fun InfoRow(label: String, value: String) {
 
 
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -239,6 +241,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -453,7 +456,7 @@ fun RequestListScreen(
         }
     }
 }
-
+/*
 @Composable
 fun RequestItemCard(
     request: RequestModel
@@ -662,11 +665,23 @@ fun RequestItemCard(
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
 
+                val context =
+                    LocalContext.current
+
                 OutlinedButton(
                     onClick = {
 
-                    },
-                    modifier = Modifier.weight(1f)
+                        val intent = Intent(
+                            Intent.ACTION_DIAL
+                        ).apply {
+
+                            data = Uri.parse(
+                                "tel:${request.contactPhone}"
+                            )
+                        }
+
+                        context.startActivity(intent)
+                    }
                 ) {
 
                     Icon(
@@ -704,6 +719,8 @@ fun RequestItemCard(
         }
     }
 }
+
+ */
 
 @Composable
 fun InfoRow(
@@ -744,3 +761,4 @@ fun InfoRow(
         )
     }
 }
+

@@ -1,5 +1,7 @@
 package com.social.vitadrop.domain.model
 
+import com.google.firebase.Timestamp
+
 
 /*
 data class RequestModel(
@@ -68,7 +70,9 @@ data class RequestModel(
 
     val acceptedBy: String = "",
 
-    val notificationStartedAt: Long? = null,
+    //val notificationStartedAt: Long? = null,
+    val notificationStartedAt: Timestamp? = null,
+
 
     val notifiedDonors: List<String> = emptyList(),
 
@@ -80,5 +84,6 @@ data class RequestModel(
     val emergency: Boolean = false,
 
     // TIMESTAMP
-    val createdAt: Long? = null
+   // val createdAt: Long? = null
+    val createdAt: Timestamp? = null
 )

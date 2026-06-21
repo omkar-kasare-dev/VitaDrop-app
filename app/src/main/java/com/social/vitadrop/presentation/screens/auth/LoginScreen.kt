@@ -36,6 +36,7 @@ import androidx.navigation.NavController
 import com.example.kotlinbasics.R
 import com.social.vitadrop.presentation.viewmodel.AuthViewModel
 import android.util.Log
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.messaging.ktx.messaging
 import com.social.vitadrop.data.remote.FirebaseMessagingManager
@@ -335,7 +336,17 @@ fun LoginScreen(
                                         } else {
                                             Log.e("FCM", "Subscription failed", task.exception)
                                         }
+//
+                                        Log.d(
+                                            "AUTH_CHECK",
+                                            "UID = ${FirebaseAuth.getInstance().currentUser?.uid}"
+                                        )
 
+                                        Log.d(
+                                            "AUTH_CHECK",
+                                            "EMAIL = ${FirebaseAuth.getInstance().currentUser?.email}"
+                                        )
+                                        //
                                         navController.navigate("dashboard/$role") {
                                             popUpTo("login") {
                                                 inclusive = true

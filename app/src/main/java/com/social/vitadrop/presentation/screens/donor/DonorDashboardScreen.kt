@@ -373,7 +373,9 @@ import android.content.Intent
 import android.net.Uri
 import android.util.Log
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.social.vitadrop.presentation.event.EmergencyEvent
+import com.social.vitadrop.presentation.screens.common.EmergencyListScreen
 import com.social.vitadrop.presentation.viewmodel.EmergencyViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -381,11 +383,14 @@ import com.social.vitadrop.presentation.viewmodel.EmergencyViewModel
 fun DonorDashboardScreen(
     navController: NavController,
     viewModel: DonorDashboardViewModel,
+    emergencyViewModel: EmergencyViewModel
 ) {
 
     val state by viewModel.state.collectAsState()
+    //val emergencyViewModel: EmergencyViewModel =
+       // viewModel()
 
-    val context = LocalContext.current
+    //val context = LocalContext.current
 
 
     //===============
@@ -729,12 +734,24 @@ fun DonorDashboardScreen(
  */
 
 
-/*
+
             item {
-                Spacer(modifier = Modifier.height(90.dp))
+
+                EmergencyListScreen(
+                    requests =
+                        state.emergencyRequests,
+                    emergencyViewModel =
+                        emergencyViewModel,
+                    onViewContact = { requestId ->
+
+                        navController.navigate(
+                            "request_details/$requestId"
+                        )
+                    }
+                )
             }
 
- */
+
         }
     }
 }

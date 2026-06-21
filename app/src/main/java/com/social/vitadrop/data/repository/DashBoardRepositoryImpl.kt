@@ -721,9 +721,8 @@ class DashboardRepositoryImpl : DashboardRepository {
 
              //* TIMESTAMP
 
-            createdAt = getTimestamp("createdAt")
-                ?.toDate()
-                ?.time
+            createdAt =
+                getTimestamp("createdAt")
         )
     }
 }

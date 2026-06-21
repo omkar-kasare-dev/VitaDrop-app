@@ -56,6 +56,7 @@ class NotificationHelper(
     /**
      * SHOW NOTIFICATION
      */
+    /*
     fun showNotification(
         title: String,
         body: String
@@ -107,5 +108,5 @@ class NotificationHelper(
                     builder.build()
                 )
         }
-    }
+    }*/
 }

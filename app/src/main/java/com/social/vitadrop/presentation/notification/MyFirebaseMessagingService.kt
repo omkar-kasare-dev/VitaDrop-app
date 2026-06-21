@@ -77,10 +77,12 @@ class MyFirebaseMessagingService :
          * SHOW NOTIFICATION USING HELPER
          */
         NotificationHelper(this)
-            .showNotification(
+           /* .showNotification(
                 title = title,
                 body = body
             )
+
+            */
 
         /**
          * OPTIONAL:
