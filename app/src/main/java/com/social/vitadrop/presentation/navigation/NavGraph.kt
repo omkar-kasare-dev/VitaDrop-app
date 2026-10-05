@@ -38,13 +38,11 @@ import com.social.vitadrop.presentation.screens.common.RequestDetailsScreen
 import com.social.vitadrop.presentation.screens.common.RequestListScreen
 
 import com.social.vitadrop.presentation.screens.donor.DonorDashboardScreen
-import com.social.vitadrop.presentation.screens.donor.DonorListScreen
 import com.social.vitadrop.presentation.splash.SplashScreen
 
 import com.social.vitadrop.presentation.viewmodel.ProfileViewModel
 
 import com.social.vitadrop.presentation.viewmodel.DonorDashboardViewModel
-import com.social.vitadrop.presentation.viewmodel.DonorViewModel
 import com.social.vitadrop.presentation.viewmodel.EmergencyViewModel
 import com.social.vitadrop.presentation.viewmodel.RequestDetailsViewModel
 
@@ -54,6 +52,11 @@ import com.social.vitadrop.presentation.request.screen.CreateRequestScreen
 import com.social.vitadrop.presentation.request.viewmodel.CreateRequestViewModel
 
 import com.social.vitadrop.utils.SessionManager
+
+import com.social.vitadrop.domain.usecase.GetDonorsUseCase
+import com.social.vitadrop.presentation.donor.screen.DonorListScreen
+
+import com.social.vitadrop.presentation.donor.viewmodel.DonorListViewModel
 
 @Composable
 fun NavGraph(modifier: Modifier = Modifier) {
@@ -339,14 +342,19 @@ fun NavGraph(modifier: Modifier = Modifier) {
 
         composable("donors_list") {
 
-            val donorDashboardViewModel = remember {
-                DonorViewModel(
-                    repository = DonorRepositoryImpl()
-                )
-            }
+            val donorListViewModel: DonorListViewModel = viewModel(
+                factory = viewModelFactory {
+                    initializer {
+                        DonorListViewModel(
+                            GetDonorsUseCase(DonorRepositoryImpl())
+                        )
+                    }
+                }
+            )
 
-            DonorListScreen(navController = navController,
-                viewModel = donorDashboardViewModel
+            DonorListScreen(
+                viewModel = donorListViewModel,
+                onBack = { navController.popBackStack() }
             )
         }
 
