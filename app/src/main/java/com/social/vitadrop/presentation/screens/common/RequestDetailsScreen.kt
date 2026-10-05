@@ -1,41 +1,5 @@
 package com.social.vitadrop.presentation.screens.common
 
-/*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import com.social.vitadrop.presentation.viewmodel.RequestDetailsViewModel
-
-@Composable
-fun RequestDetailsScreen(
-    requestId: String,
-    viewModel: RequestDetailsViewModel
-) {
-
-    val request by viewModel
-        .request
-        .collectAsState()
-
-    LaunchedEffect(requestId) {
-
-        viewModel.loadRequest(
-            requestId
-        )
-    }
-
-    request?.let {
-
-        RequestItemCard(
-            request = it
-        )
-    }
-}
-
-*/
-
-
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons

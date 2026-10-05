@@ -28,11 +28,7 @@ import com.social.vitadrop.presentation.viewmodel.ChatViewModel
 import androidx.compose.material.icons.rounded.Send
 import androidx.compose.runtime.Composable
 
-
-
-// PROFESSIONAL AI CHAT SCREEN
-
-
+// Hemora AI CHAT SCREEN
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatScreen(
@@ -268,9 +264,7 @@ fun ChatScreen(
     }
 }
 
-// ============================================
 // EMPTY SCREEN
-// ============================================
 
 @Composable
 fun EmptyChatUI() {
@@ -338,10 +332,7 @@ fun EmptyChatUI() {
     }
 }
 
-// ============================================
 // CHAT BUBBLE
-// ============================================
-
 @Composable
 fun MessageItem(
     message: ChatMessage

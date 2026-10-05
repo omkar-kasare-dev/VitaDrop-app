@@ -96,6 +96,9 @@ dependencies {
     // Lifecycle ViewModel for Compose
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.4")
 
+    // Location
+    implementation("com.google.android.gms:play-services-location:21.3.0")
+
     //firebase
     implementation(platform("com.google.firebase:firebase-bom:32.7.2"))
     implementation("com.google.firebase:firebase-auth-ktx")
