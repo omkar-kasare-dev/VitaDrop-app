@@ -1,7 +1,5 @@
 package com.social.vitadrop.domain.usecase
 
-
-
 import com.social.vitadrop.domain.model.User
 import com.social.vitadrop.domain.repository.AuthRepository
 

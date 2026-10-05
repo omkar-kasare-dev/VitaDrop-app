@@ -1,8 +1,5 @@
 package com.social.vitadrop.domain.repository
 
-
-
-
 interface NotificationRepository {
 
     suspend fun getFCMToken(): String

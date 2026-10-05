@@ -1,10 +1,7 @@
 package com.social.vitadrop.domain.repository
 
-import com.social.vitadrop.domain.model.RequestModel
-import kotlinx.coroutines.flow.Flow
+import com.social.vitadrop.domain.model.NewRequest
 
 interface RequestRepository {
-    suspend fun createRequest(request: RequestModel)
-
-
+    suspend fun createRequest(request: NewRequest): Result<String>
 }

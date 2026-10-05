@@ -1,7 +1,4 @@
 package com.social.vitadrop.domain.usecase
-
-
-
 import com.social.vitadrop.domain.repository.ResponseRepository
 
 class HasRespondedUseCase(
