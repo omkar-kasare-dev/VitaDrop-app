@@ -1,4 +1,4 @@
-package com.social.vitadrop.presentation.screens.common
+package com.social.vitadrop.presentation.emergency.screen
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -23,6 +22,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
@@ -37,25 +37,26 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.social.vitadrop.domain.model.RequestModel
-import com.social.vitadrop.presentation.event.EmergencyEvent
-import com.social.vitadrop.state.EmergencyUiState
+import com.social.vitadrop.presentation.emergency.EmergencyIntent
+import com.social.vitadrop.presentation.emergency.EmergencyState
 
 @Composable
 fun EmergencyCardUI(
     request: RequestModel,
-    uiState: EmergencyUiState,
-    onEvent: (EmergencyEvent) -> Unit,
+    uiState: EmergencyState,
+    onIntent: (EmergencyIntent) -> Unit,
     onViewContact: (String) -> Unit = {}
 ) {
     val requestId = request.requestId
 
+    // The ViewModel checks the response status and starts the live count (only once per request)
     LaunchedEffect(requestId) {
-        onEvent(EmergencyEvent.CheckAlreadyResponded(requestId))
-        onEvent(EmergencyEvent.ObserveResponseCount(requestId))
+        onIntent(EmergencyIntent.RequestShown(requestId))
     }
 
     val hasResponded = uiState.respondedRequests[requestId] ?: false
     val responseCount = uiState.responseCounts[requestId] ?: 0
+    val isResponding = requestId in uiState.respondingRequestIds
 
     val primaryRose = Color(0xFFE11D48)
     val textDark = Color(0xFF0F172A)
@@ -177,7 +178,7 @@ fun EmergencyCardUI(
 
             // Actions
             Button(
-                onClick = { onEvent(EmergencyEvent.RespondToRequest(requestId)) },
+                onClick = { onIntent(EmergencyIntent.Respond(requestId)) },
                 enabled = !hasResponded,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -190,11 +191,20 @@ fun EmergencyCardUI(
                 ),
                 contentPadding = PaddingValues(0.dp)
             ) {
-                Text(
-                    text = if (hasResponded) "Already Responded" else "Respond Now",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
+                if (isResponding) {
+                    // Only the tapped card shows the spinner (the ViewModel ignores double taps)
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp,
+                        color = Color.White
+                    )
+                } else {
+                    Text(
+                        text = if (hasResponded) "Already Responded" else "Respond Now",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
 
             if (hasResponded) {

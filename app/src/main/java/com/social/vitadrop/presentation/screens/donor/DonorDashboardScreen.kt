@@ -437,11 +437,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.social.vitadrop.presentation.emergency.screen.EmergencyListScreen
+import com.social.vitadrop.presentation.emergency.viewmodel.EmergencyViewModel
 import com.social.vitadrop.presentation.event.DonorDashboardEvent
-import com.social.vitadrop.presentation.screens.common.EmergencyListScreen
+
 import com.social.vitadrop.presentation.screens.donor.components.StatsSectionUI
 import com.social.vitadrop.presentation.viewmodel.DonorDashboardViewModel
-import com.social.vitadrop.presentation.viewmodel.EmergencyViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

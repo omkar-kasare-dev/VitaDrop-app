@@ -10,7 +10,6 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -34,7 +33,7 @@ import com.social.vitadrop.presentation.auth.register.viewmodel.RegisterViewMode
 
 import com.social.vitadrop.presentation.screens.common.ChatScreen
 import com.social.vitadrop.presentation.screens.common.ProfileScreen
-import com.social.vitadrop.presentation.screens.common.RequestDetailsScreen
+
 import com.social.vitadrop.presentation.screens.common.RequestListScreen
 
 import com.social.vitadrop.presentation.screens.donor.DonorDashboardScreen
@@ -43,8 +42,6 @@ import com.social.vitadrop.presentation.splash.SplashScreen
 import com.social.vitadrop.presentation.viewmodel.ProfileViewModel
 
 import com.social.vitadrop.presentation.viewmodel.DonorDashboardViewModel
-import com.social.vitadrop.presentation.viewmodel.EmergencyViewModel
-import com.social.vitadrop.presentation.viewmodel.RequestDetailsViewModel
 
 import com.social.vitadrop.domain.usecase.CreateRequestUseCase
 import com.social.vitadrop.presentation.request.screen.CreateRequestScreen
@@ -54,9 +51,16 @@ import com.social.vitadrop.presentation.request.viewmodel.CreateRequestViewModel
 import com.social.vitadrop.utils.SessionManager
 
 import com.social.vitadrop.domain.usecase.GetDonorsUseCase
+import com.social.vitadrop.domain.usecase.GetRequestByIdUseCase
+import com.social.vitadrop.domain.usecase.HasAlreadyRespondedUseCase
+import com.social.vitadrop.domain.usecase.ObserveResponseCountUseCase
+import com.social.vitadrop.domain.usecase.RespondToRequestUseCase
 import com.social.vitadrop.presentation.donor.screen.DonorListScreen
 
 import com.social.vitadrop.presentation.donor.viewmodel.DonorListViewModel
+import com.social.vitadrop.presentation.emergency.viewmodel.EmergencyViewModel
+import com.social.vitadrop.presentation.request.screen.RequestDetailsScreen
+import com.social.vitadrop.presentation.request.viewmodel.RequestDetailsViewModel
 
 @Composable
 fun NavGraph(modifier: Modifier = Modifier) {
@@ -156,26 +160,7 @@ fun NavGraph(modifier: Modifier = Modifier) {
                         }
                     )
                     //
-                    val emergencyViewModel: EmergencyViewModel =
-                        viewModel(
-                            factory = object :
-                                ViewModelProvider.Factory {
-
-                                @Suppress("UNCHECKED_CAST")
-                                override fun <T : ViewModel> create(
-                                    modelClass: Class<T>
-                                ): T {
-
-                                    return EmergencyViewModel(
-                                        repository =
-                                            ResponseRepositoryImpl(
-                                                FirebaseFirestore
-                                                    .getInstance()
-                                            )
-                                    ) as T
-                                }
-                            }
-                        )
+                    val emergencyViewModel = rememberEmergencyViewModel()
 
 
                     DonorDashboardScreen(
@@ -201,26 +186,7 @@ fun NavGraph(modifier: Modifier = Modifier) {
                         }
                     )
                     //
-                    val emergencyViewModel: EmergencyViewModel =
-                        viewModel(
-                            factory = object :
-                                ViewModelProvider.Factory {
-
-                                @Suppress("UNCHECKED_CAST")
-                                override fun <T : ViewModel> create(
-                                    modelClass: Class<T>
-                                ): T {
-
-                                    return EmergencyViewModel(
-                                        repository =
-                                            ResponseRepositoryImpl(
-                                                FirebaseFirestore
-                                                    .getInstance()
-                                            )
-                                    ) as T
-                                }
-                            }
-                        )
+                    val emergencyViewModel = rememberEmergencyViewModel()
 
 
 
@@ -252,28 +218,7 @@ fun NavGraph(modifier: Modifier = Modifier) {
                         }
                     )
                     //
-                    val emergencyViewModel: EmergencyViewModel =
-                        viewModel(
-                            factory = object :
-                                ViewModelProvider.Factory {
-
-                                @Suppress("UNCHECKED_CAST")
-                                override fun <T : ViewModel> create(
-                                    modelClass: Class<T>
-                                ): T {
-
-                                    return EmergencyViewModel(
-                                        repository =
-                                            ResponseRepositoryImpl(
-                                                FirebaseFirestore
-                                                    .getInstance()
-                                            )
-                                    ) as T
-                                }
-                            }
-                        )
-
-
+                    val emergencyViewModel = rememberEmergencyViewModel()
 
                     DonorDashboardScreen(
                         navController = navController,
@@ -368,45 +313,43 @@ fun NavGraph(modifier: Modifier = Modifier) {
             )
         }
 
-        composable(
-            route = "request_details/{requestId}"
-        ) { backStackEntry ->
+        composable(route = "request_details/{requestId}") { backStackEntry ->
 
-            val requestId =
-                backStackEntry.arguments
-                    ?.getString("requestId")
-                    ?: ""
+            val requestId = backStackEntry.arguments?.getString("requestId").orEmpty()
 
-            val requestDetailsViewModel:
-                    RequestDetailsViewModel =
-                viewModel(
-                    factory = object : ViewModelProvider.Factory {
-
-                        override fun <T : ViewModel> create(
-                            modelClass: Class<T>
-                        ): T {
-
-                            return RequestDetailsViewModel(
-
-                                repository =
-                                    ResponseRepositoryImpl(
-                                        FirebaseFirestore.getInstance()
-                                    )
-
-                            ) as T
-                        }
+            val detailsViewModel: RequestDetailsViewModel = viewModel(
+                factory = viewModelFactory {
+                    initializer {
+                        RequestDetailsViewModel(
+                            requestId = requestId,
+                            getRequestById = GetRequestByIdUseCase(
+                                ResponseRepositoryImpl(FirebaseFirestore.getInstance())
+                            )
+                        )
                     }
-                )
-            val navController = rememberNavController()
-
+                }
+            )
 
             RequestDetailsScreen(
-                requestId = requestId,
-                viewModel = requestDetailsViewModel,
-                navController = NavController
-
+                viewModel = detailsViewModel,
+                onBack = { navController.popBackStack() }
             )
         }
 
     }
 }
+
+@Composable
+private fun rememberEmergencyViewModel(): EmergencyViewModel =
+    viewModel(
+        factory = viewModelFactory {
+            initializer {
+                val repository = ResponseRepositoryImpl(FirebaseFirestore.getInstance())
+                EmergencyViewModel(
+                    respondToRequest = RespondToRequestUseCase(repository),
+                    hasAlreadyResponded = HasAlreadyRespondedUseCase(repository),
+                    observeResponseCount = ObserveResponseCountUseCase(repository)
+                )
+            }
+        }
+    )
