@@ -117,7 +117,6 @@ class DonorRepositoryImpl : DonorRepository {
                 "DONOR_ERROR",
                 e.message ?: "Unknown Error"
             )
-
             emptyList()
         }
     }

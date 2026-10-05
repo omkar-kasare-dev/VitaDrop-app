@@ -50,7 +50,6 @@ class ChatViewModel : ViewModel() {
                     isUser = false
                 )
             )
-
             _messages.value = aiUpdatedList
         }
     }

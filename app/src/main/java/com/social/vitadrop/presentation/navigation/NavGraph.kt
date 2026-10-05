@@ -8,6 +8,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -16,18 +18,22 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 
 import com.social.vitadrop.data.remote.FirebaseAuthService
+import com.social.vitadrop.data.remote.FirebaseMessagingManager
 import com.social.vitadrop.data.repository.AuthRepositoryImpl
 import com.social.vitadrop.data.repository.DashboardRepositoryImpl
 import com.social.vitadrop.data.repository.DonorRepositoryImpl
 import com.social.vitadrop.data.repository.RequestRepositoryImpl
 import com.social.vitadrop.data.repository.ResponseRepositoryImpl
+import com.social.vitadrop.domain.usecase.LoginUseCase
 import com.social.vitadrop.domain.usecase.RegisterUserUseCase
-import com.social.vitadrop.presentation.screens.auth.LoginScreen
+import com.social.vitadrop.presentation.auth.login.screen.LoginScreen
+import com.social.vitadrop.presentation.auth.login.viewmodel.LoginViewModel
+import com.social.vitadrop.presentation.auth.register.screen.RegisterScreen
+import com.social.vitadrop.presentation.auth.register.viewmodel.RegisterViewModel
 
-import com.social.vitadrop.presentation.screens.auth.RegisterScreen
+
 import com.social.vitadrop.presentation.screens.common.ChatScreen
 import com.social.vitadrop.presentation.screens.common.ProfileScreen
-import com.social.vitadrop.presentation.screens.common.RequestBloodScreen
 import com.social.vitadrop.presentation.screens.common.RequestDetailsScreen
 import com.social.vitadrop.presentation.screens.common.RequestListScreen
 
@@ -35,16 +41,17 @@ import com.social.vitadrop.presentation.screens.donor.DonorDashboardScreen
 import com.social.vitadrop.presentation.screens.donor.DonorListScreen
 import com.social.vitadrop.presentation.splash.SplashScreen
 
-import com.social.vitadrop.presentation.viewmodel.AuthViewModel
-import com.social.vitadrop.presentation.viewmodel.AuthViewModelFactory
 import com.social.vitadrop.presentation.viewmodel.ProfileViewModel
-import com.social.vitadrop.presentation.viewmodel.RegisterViewModel
 
 import com.social.vitadrop.presentation.viewmodel.DonorDashboardViewModel
 import com.social.vitadrop.presentation.viewmodel.DonorViewModel
 import com.social.vitadrop.presentation.viewmodel.EmergencyViewModel
 import com.social.vitadrop.presentation.viewmodel.RequestDetailsViewModel
-import com.social.vitadrop.presentation.viewmodel.RequestViewModel
+
+import com.social.vitadrop.domain.usecase.CreateRequestUseCase
+import com.social.vitadrop.presentation.request.screen.CreateRequestScreen
+
+import com.social.vitadrop.presentation.request.viewmodel.CreateRequestViewModel
 
 import com.social.vitadrop.utils.SessionManager
 
@@ -78,35 +85,54 @@ fun NavGraph(modifier: Modifier = Modifier) {
         // LOGIN
         composable("login") {
 
-            val viewModel: AuthViewModel = viewModel(
-                factory = AuthViewModelFactory(context)
+            val loginViewModel: LoginViewModel = viewModel(
+                factory = viewModelFactory {
+                    initializer {
+                        LoginViewModel(
+                            loginUseCase = LoginUseCase(AuthRepositoryImpl(FirebaseAuthService())),
+                            sessionManager = SessionManager(context.applicationContext),
+                            messagingManager = FirebaseMessagingManager()
+                        )
+                    }
+                }
             )
 
             LoginScreen(
-                navController = navController,
-                viewModel = viewModel
+                viewModel = loginViewModel,
+                onNavigateToRegister = { navController.navigate("register") },
+                onLoggedIn = { role ->
+                    navController.navigate("dashboard/${role.key}") {
+                        popUpTo("login") { inclusive = true }
+                    }
+                }
             )
         }
 
         // REGISTER
         composable("register") {
 
-            val registerViewModel = remember {
-                RegisterViewModel(
-                    RegisterUserUseCase(
-                        AuthRepositoryImpl(
-                            FirebaseAuthService()
+            val registerViewModel: RegisterViewModel = viewModel(
+                factory = viewModelFactory {
+                    initializer {
+                        RegisterViewModel(
+                            RegisterUserUseCase(
+                                AuthRepositoryImpl(FirebaseAuthService())
+                            )
                         )
-                    )
-                )
-            }
+                    }
+                }
+            )
 
             RegisterScreen(
-                navController = navController,
-                viewModel = registerViewModel
+                viewModel = registerViewModel,
+                onNavigateToLogin = { navController.navigate("login") },
+                onRegistered = {
+                    navController.navigate("login") {
+                        popUpTo("register") { inclusive = true }
+                    }
+                }
             )
         }
-
         //  ROLE-BASED DASHBOARD
         composable("dashboard/{role}") { backStackEntry ->
 
@@ -281,15 +307,20 @@ fun NavGraph(modifier: Modifier = Modifier) {
         //
         composable("requestBlood") {
 
-            val requestViewModel = remember {
-                RequestViewModel(
-                    repository = RequestRepositoryImpl()
-                )
-            }
+            val createRequestViewModel: CreateRequestViewModel = viewModel(
+                factory = viewModelFactory {
+                    initializer {
+                        CreateRequestViewModel(
+                            CreateRequestUseCase(RequestRepositoryImpl())
+                        )
+                    }
+                }
+            )
 
-            RequestBloodScreen(
-                navController = navController,
-                viewModel = requestViewModel
+            CreateRequestScreen(
+                viewModel = createRequestViewModel,
+                onBack = { navController.popBackStack() },
+                onRequestCreated = { navController.popBackStack() }
             )
         }
 
