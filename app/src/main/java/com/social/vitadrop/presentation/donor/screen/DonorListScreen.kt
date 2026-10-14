@@ -1,6 +1,5 @@
 package com.social.vitadrop.presentation.donor.screen
-
-import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,24 +12,29 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -50,6 +54,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.social.vitadrop.presentation.components.CompactDropdownFilter
 import com.social.vitadrop.presentation.donor.DonorListIntent
 import com.social.vitadrop.presentation.donor.DonorListState
@@ -60,6 +65,16 @@ import kotlinx.coroutines.launch
 private const val ALL = "All"
 private val BLOOD_GROUP_OPTIONS = listOf(ALL, "A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-")
 private val GENDER_OPTIONS = listOf(ALL, "Male", "Female")
+
+// Real-World Design Palette Constants
+private val AppBgColor = Color(0xFFF8FAFC)        // Slate 50 background
+private val CardBgColor = Color(0xFFFFFFFF)       // Pure White Surface
+private val BorderColor = Color(0xFFF1F5F9)       // Slate 100 soft border
+private val TextPrimary = Color(0xFF0F172A)       // Slate 900 primary text
+private val TextSecondary = Color(0xFF64748B)     // Slate 500 secondary label
+private val PrimaryAccent = Color(0xFFE11D48)     // Deep Crimson/Rose
+private val SoftBadgeBg = Color(0xFFFFF1F2)      // Light Rose tint
+private val LightAccentBg = Color(0xFFFFE4E6)
 
 private fun String.nullIfAll(): String? = if (this == ALL) null else this
 
@@ -97,18 +112,33 @@ private fun DonorListContent(
 
     val visibleDonors = state.visibleDonors
 
+    val fieldColors = OutlinedTextFieldDefaults.colors(
+        focusedBorderColor = PrimaryAccent,
+        unfocusedBorderColor = BorderColor,
+        focusedLabelColor = PrimaryAccent,
+        unfocusedLabelColor = TextSecondary,
+        focusedContainerColor = CardBgColor,
+        unfocusedContainerColor = CardBgColor,
+        cursorColor = PrimaryAccent
+    )
+
     Scaffold(
-        containerColor = Color(0xFFFFF5F5),
+        containerColor = AppBgColor,
         topBar = {
             TopAppBar(
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White),
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = CardBgColor),
                 title = {
                     Column {
-                        Text(text = "Blood Donors", fontWeight = FontWeight.Bold)
+                        Text(
+                            text = "Blood Donors",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = TextPrimary
+                        )
                         Text(
                             text = "${visibleDonors.size} donors found",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color.Gray
+                            fontSize = 11.sp,
+                            color = TextSecondary
                         )
                     }
                 },
@@ -116,13 +146,20 @@ private fun DonorListContent(
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = "Back",
+                            tint = TextPrimary,
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                 },
                 actions = {
                     TextButton(onClick = { showFilters = true }) {
-                        Text(text = "Filters", color = Color(0xFFD32F2F))
+                        Text(
+                            text = "Filters",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = PrimaryAccent
+                        )
                     }
                 }
             )
@@ -132,7 +169,6 @@ private fun DonorListContent(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color(0xFFFFF5F5))
                 .padding(padding)
         ) {
 
@@ -145,7 +181,7 @@ private fun DonorListContent(
                     top = 16.dp,
                     bottom = 90.dp
                 ),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
 
                 // SEARCH BAR
@@ -154,29 +190,39 @@ private fun DonorListContent(
                         value = state.query,
                         onValueChange = { onIntent(DonorListIntent.Search(it)) },
                         modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("Search donor, city or blood group") },
+                        placeholder = {
+                            Text(
+                                "Search donor, city or blood group",
+                                fontSize = 12.sp,
+                                color = TextSecondary
+                            )
+                        },
                         leadingIcon = {
                             Icon(
                                 imageVector = Icons.Default.Search,
                                 contentDescription = null,
-                                tint = Color.Gray
+                                tint = TextSecondary,
+                                modifier = Modifier.size(18.dp)
                             )
                         },
-                        shape = RoundedCornerShape(18.dp),
-                        singleLine = true
+                        shape = RoundedCornerShape(12.dp),
+                        singleLine = true,
+                        colors = fieldColors
                     )
                 }
 
                 // ACTIVE FILTERS
-                item {
-                    Row(
-                        modifier = Modifier.horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        state.bloodGroup?.let { ActiveFilterChip(it) }
-                        state.gender?.let { ActiveFilterChip(it) }
-                        state.city?.let { ActiveFilterChip(it) }
-                        if (state.availableOnly) ActiveFilterChip("Available")
+                if (state.bloodGroup != null || state.gender != null || state.city != null || state.availableOnly) {
+                    item {
+                        Row(
+                            modifier = Modifier.horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            state.bloodGroup?.let { ActiveFilterChip(it) }
+                            state.gender?.let { ActiveFilterChip(it) }
+                            state.city?.let { ActiveFilterChip(it) }
+                            if (state.availableOnly) ActiveFilterChip("Available")
+                        }
                     }
                 }
 
@@ -186,27 +232,41 @@ private fun DonorListContent(
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(top = 80.dp),
+                                .padding(top = 60.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Search,
-                                contentDescription = null,
-                                tint = Color.LightGray,
-                                modifier = Modifier.size(70.dp)
-                            )
+                            Surface(
+                                shape = CircleShape,
+                                color = SoftBadgeBg,
+                                modifier = Modifier.size(64.dp),
+                                border = BorderStroke(1.dp, LightAccentBg)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = Icons.Default.Search,
+                                        contentDescription = null,
+                                        tint = PrimaryAccent,
+                                        modifier = Modifier.size(30.dp)
+                                    )
+                                }
+                            }
 
-                            Spacer(modifier = Modifier.height(14.dp))
+                            Spacer(modifier = Modifier.height(12.dp))
 
                             Text(
                                 text = "No donors found",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = TextPrimary
                             )
 
-                            Spacer(modifier = Modifier.height(6.dp))
+                            Spacer(modifier = Modifier.height(4.dp))
 
-                            Text(text = "Try changing filters", color = Color.Gray)
+                            Text(
+                                text = "Try changing filters",
+                                fontSize = 12.sp,
+                                color = TextSecondary
+                            )
                         }
                     }
                 }
@@ -219,7 +279,11 @@ private fun DonorListContent(
 
             // ================= LOADING =================
             if (state.isLoading) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.Center),
+                    color = PrimaryAccent,
+                    strokeWidth = 2.dp
+                )
             }
 
             // ================= ERROR + RETRY =================
@@ -231,15 +295,34 @@ private fun DonorListContent(
                         .padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text(text = error, color = Color.Red)
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Button(
-                        onClick = { onIntent(DonorListIntent.Refresh) },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F))
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFFEF2F2)),
+                        border = BorderStroke(1.dp, Color(0xFFFCA5A5))
                     ) {
-                        Text("Retry")
+                        Column(
+                            modifier = Modifier
+                                .padding(20.dp)
+                                .fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = error,
+                                color = PrimaryAccent,
+                                fontSize = 12.sp
+                            )
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            Button(
+                                onClick = { onIntent(DonorListIntent.Refresh) },
+                                shape = RoundedCornerShape(10.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryAccent)
+                            ) {
+                                Text("Retry", fontSize = 12.sp, color = Color.White)
+                            }
+                        }
                     }
                 }
             }
@@ -249,17 +332,19 @@ private fun DonorListContent(
         if (showFilters) {
             ModalBottomSheet(
                 onDismissRequest = { showFilters = false },
-                sheetState = sheetState
+                sheetState = sheetState,
+                //containerColor = CardBgCardColor
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
 
                     Text(
                         text = "Filters",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextPrimary
                     )
 
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
                     CompactDropdownFilter(
                         label = "Blood Group",
@@ -270,7 +355,7 @@ private fun DonorListContent(
                         }
                     )
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(14.dp))
 
                     CompactDropdownFilter(
                         label = "Gender",
@@ -281,7 +366,7 @@ private fun DonorListContent(
                         }
                     )
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(14.dp))
 
                     CompactDropdownFilter(
                         label = "City",
@@ -292,30 +377,62 @@ private fun DonorListContent(
                         }
                     )
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(14.dp))
 
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Checkbox(
-                            checked = state.availableOnly,
-                            onCheckedChange = {
-                                onIntent(DonorListIntent.AvailableOnlyChanged(it))
-                            }
-                        )
+                    Surface(
+                        onClick = { onIntent(DonorListIntent.AvailableOnlyChanged(!state.availableOnly)) },
+                        shape = RoundedCornerShape(10.dp),
+                        color = if (state.availableOnly) SoftBadgeBg else AppBgColor,
+                        border = BorderStroke(
+                            1.dp,
+                            if (state.availableOnly) LightAccentBg else BorderColor
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
+                        ) {
+                            Checkbox(
+                                checked = state.availableOnly,
+                                onCheckedChange = {
+                                    onIntent(DonorListIntent.AvailableOnlyChanged(it))
+                                },
+                                colors = CheckboxDefaults.colors(
+                                    checkedColor = PrimaryAccent,
+                                    uncheckedColor = TextSecondary
+                                )
+                            )
 
-                        Text(text = "Available donors only")
+                            Spacer(modifier = Modifier.width(6.dp))
+
+                            Text(
+                                text = "Available donors only",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = TextPrimary
+                            )
+                        }
                     }
 
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(20.dp))
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         OutlinedButton(
                             onClick = { onIntent(DonorListIntent.ClearFilters) },
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(40.dp),
+                            shape = RoundedCornerShape(10.dp),
+                            border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = TextPrimary
+                            )
                         ) {
-                            Text("Clear")
+                            Text("Clear", fontSize = 12.sp, fontWeight = FontWeight.Medium)
                         }
 
                         Button(
@@ -325,16 +442,19 @@ private fun DonorListContent(
                                     showFilters = false
                                 }
                             },
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(40.dp),
+                            shape = RoundedCornerShape(10.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFFD32F2F)
+                                containerColor = PrimaryAccent
                             )
                         ) {
-                            Text("Apply")
+                            Text("Apply", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = Color.White)
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(30.dp))
+                    Spacer(modifier = Modifier.height(24.dp))
                 }
             }
         }
@@ -346,13 +466,19 @@ private fun DonorListContent(
 @Composable
 private fun ActiveFilterChip(text: String) {
     Surface(
-        shape = RoundedCornerShape(50.dp),
-        color = Color(0xFFFFEBEE)
+        shape = RoundedCornerShape(8.dp),
+        color = SoftBadgeBg,
+        border = BorderStroke(1.dp, LightAccentBg)
     ) {
         Text(
             text = text,
-            color = Color(0xFFD32F2F),
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            color = PrimaryAccent,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
         )
     }
 }
+
+// Local helper extension for progress bar modifier size syntax compatibility
+private fun Modifier.modifier_size(size: androidx.compose.ui.unit.Dp) = this.size(size)

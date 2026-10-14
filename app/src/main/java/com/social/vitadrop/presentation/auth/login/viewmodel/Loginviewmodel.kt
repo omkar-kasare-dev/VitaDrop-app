@@ -1,13 +1,9 @@
 package com.social.vitadrop.presentation.auth.login.viewmodel
 
-
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.firebase.messaging.FirebaseMessaging
-import com.social.vitadrop.data.remote.FirebaseMessagingManager
-import com.social.vitadrop.domain.model.UserRole
 import com.social.vitadrop.domain.usecase.LoginUseCase
+import com.social.vitadrop.domain.usecase.RegisterDeviceUseCase
 import com.social.vitadrop.presentation.auth.login.LoginEffect
 import com.social.vitadrop.presentation.auth.login.LoginIntent
 import com.social.vitadrop.presentation.auth.login.LoginState
@@ -23,8 +19,7 @@ import kotlinx.coroutines.launch
 class LoginViewModel(
     private val loginUseCase: LoginUseCase,
     private val sessionManager: SessionManager,
-    // TEMPORARY: still a data-layer class. We tidy this in the notification cleanup batch.
-    private val messagingManager: FirebaseMessagingManager
+    private val registerDevice: RegisterDeviceUseCase   // before: FirebaseMessagingManager (data layer)
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(LoginState())
@@ -68,24 +63,18 @@ class LoginViewModel(
             result
                 .onSuccess { uid ->
                     sessionManager.saveUserSession(uid, role.key)
-                    messagingManager.generateAndSaveToken()
-                    if (role == UserRole.DONOR) subscribeToDonorsTopic()
+
+                    // Not awaited: login never waits for notifications. The repository finishes
+                    // the job even after this screen (and ViewModel) is closed.
+                    // It saves the token for donors AND hospitals; only donors join the topic.
+                    viewModelScope.launch { registerDevice(role) }
+
                     _effect.send(LoginEffect.LoggedIn(role))
                 }
                 .onFailure { error ->
                     _state.update { it.copy(errorMessage = error.message ?: "Login failed") }
                 }
         }
-    }
-
-    // Fire and forget: navigation does not wait for this.
-    private fun subscribeToDonorsTopic() {
-        FirebaseMessaging.getInstance()
-            .subscribeToTopic("donors")
-            .addOnCompleteListener { task ->
-                if (task.isSuccessful) Log.d("FCM", "Subscribed to donors topic")
-                else Log.e("FCM", "Subscription failed", task.exception)
-            }
     }
 
     private fun showError(message: String) =

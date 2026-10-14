@@ -2,22 +2,17 @@ package com.social.vitadrop.presentation.navigation
 
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 
 import com.social.vitadrop.data.remote.FirebaseAuthService
-import com.social.vitadrop.data.remote.FirebaseMessagingManager
 import com.social.vitadrop.data.repository.AuthRepositoryImpl
 import com.social.vitadrop.data.repository.DashboardRepositoryImpl
 import com.social.vitadrop.data.repository.DonorRepositoryImpl
@@ -32,16 +27,8 @@ import com.social.vitadrop.presentation.auth.register.viewmodel.RegisterViewMode
 
 
 import com.social.vitadrop.presentation.screens.common.ChatScreen
-import com.social.vitadrop.presentation.screens.common.ProfileScreen
 
-import com.social.vitadrop.presentation.screens.common.RequestListScreen
-
-import com.social.vitadrop.presentation.screens.donor.DonorDashboardScreen
 import com.social.vitadrop.presentation.splash.SplashScreen
-
-import com.social.vitadrop.presentation.viewmodel.ProfileViewModel
-
-import com.social.vitadrop.presentation.viewmodel.DonorDashboardViewModel
 
 import com.social.vitadrop.domain.usecase.CreateRequestUseCase
 import com.social.vitadrop.presentation.request.screen.CreateRequestScreen
@@ -61,6 +48,23 @@ import com.social.vitadrop.presentation.donor.viewmodel.DonorListViewModel
 import com.social.vitadrop.presentation.emergency.viewmodel.EmergencyViewModel
 import com.social.vitadrop.presentation.request.screen.RequestDetailsScreen
 import com.social.vitadrop.presentation.request.viewmodel.RequestDetailsViewModel
+
+import com.social.vitadrop.domain.model.UserRole
+import com.social.vitadrop.domain.usecase.GetDashboardUseCase
+import com.social.vitadrop.domain.usecase.GetOpenRequestsUseCase
+import com.social.vitadrop.presentation.dashboard.screen.DonorDashboardScreen
+import com.social.vitadrop.presentation.dashboard.viewmodel.DonorDashboardViewModel
+import com.social.vitadrop.presentation.request.list.RequestListScreen
+import com.social.vitadrop.presentation.request.list.RequestListViewModel
+
+import com.social.vitadrop.data.repository.NotificationRepositoryImpl
+import com.social.vitadrop.data.repository.ProfileRepositoryImpl
+import com.social.vitadrop.domain.usecase.GetProfileUseCase
+import com.social.vitadrop.domain.usecase.LogoutUseCase
+import com.social.vitadrop.domain.usecase.RegisterDeviceUseCase
+import com.social.vitadrop.presentation.profile.ProfileScreen
+import com.social.vitadrop.presentation.profile.ProfileViewModel
+
 
 @Composable
 fun NavGraph(modifier: Modifier = Modifier) {
@@ -98,7 +102,7 @@ fun NavGraph(modifier: Modifier = Modifier) {
                         LoginViewModel(
                             loginUseCase = LoginUseCase(AuthRepositoryImpl(FirebaseAuthService())),
                             sessionManager = SessionManager(context.applicationContext),
-                            messagingManager = FirebaseMessagingManager()
+                            registerDevice = RegisterDeviceUseCase(NotificationRepositoryImpl())
                         )
                     }
                 }
@@ -140,114 +144,59 @@ fun NavGraph(modifier: Modifier = Modifier) {
                 }
             )
         }
-        //  ROLE-BASED DASHBOARD
+
+
         composable("dashboard/{role}") { backStackEntry ->
 
-            val role = backStackEntry.arguments?.getString("role")
+            // Unknown roles (for example an old saved "admin" session) fall back to the donor view, as before
+            val role = UserRole.fromKey(backStackEntry.arguments?.getString("role").orEmpty())
+                ?: UserRole.DONOR
 
-            when (role) {
-
-                // DONOR DASHBOARD (FIXED)
-                "donor" -> {
-
-                    val donorViewModel: DonorDashboardViewModel = viewModel(
-                        factory = object : ViewModelProvider.Factory {
-                            override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                                return DonorDashboardViewModel(
-                                    repository = DashboardRepositoryImpl()
-                                ) as T
-                            }
-                        }
-                    )
-                    //
-                    val emergencyViewModel = rememberEmergencyViewModel()
-
-
-                    DonorDashboardScreen(
-
-                        navController = navController,
-
-                        viewModel = donorViewModel,
-                        emergencyViewModel =
-                            emergencyViewModel
-                    )
+            val dashboardViewModel: DonorDashboardViewModel = viewModel(
+                factory = viewModelFactory {
+                    initializer {
+                        DonorDashboardViewModel(GetDashboardUseCase(DashboardRepositoryImpl()))
+                    }
                 }
+            )
 
-                // OTHER ROLES (UNCHANGED)
-                "hospital" -> {
+            val emergencyViewModel = rememberEmergencyViewModel()
 
-                    val donorViewModel: DonorDashboardViewModel = viewModel(
-                        factory = object : ViewModelProvider.Factory {
-                            override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                                return DonorDashboardViewModel(
-                                    repository = DashboardRepositoryImpl()
-                                ) as T
-                            }
-                        }
-                    )
-                    //
-                    val emergencyViewModel = rememberEmergencyViewModel()
-
-
-
-                    DonorDashboardScreen(
-
-                        navController = navController,
-
-                        viewModel = donorViewModel,
-                        emergencyViewModel =
-                            emergencyViewModel
-
-                    )
-                }
-
-
-               // "admin" -> DashboardScreen(navController)
-
-               // "patient" -> DashboardScreen(navController)
-
-                else -> {
-
-                    val donorViewModel: DonorDashboardViewModel = viewModel(
-                        factory = object : ViewModelProvider.Factory {
-                            override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                                return DonorDashboardViewModel(
-                                    repository = DashboardRepositoryImpl()
-                                ) as T
-                            }
-                        }
-                    )
-                    //
-                    val emergencyViewModel = rememberEmergencyViewModel()
-
-                    DonorDashboardScreen(
-                        navController = navController,
-                        viewModel = donorViewModel,
-                        emergencyViewModel =
-                            emergencyViewModel
-                    )
-
-
-                }
-            }
+            DonorDashboardScreen(
+                role = role,
+                viewModel = dashboardViewModel,
+                emergencyViewModel = emergencyViewModel,
+                onProfileClick = { navController.navigate("profile") },
+                onDonorsClick = { navController.navigate("donors_list") },
+                onEmergencyClick = { navController.navigate("request_list") },
+                onRequestBloodClick = { navController.navigate("requestBlood") },
+                onChatClick = { navController.navigate("chat_assistant") },
+                onViewContact = { requestId -> navController.navigate("request_details/$requestId") }
+            )
         }
 
         // PROFILE
         composable("profile") {
 
-            val sessionManager = remember { SessionManager(context) }
-
-            val profileViewModel = remember {
-                ProfileViewModel(
-                    db = FirebaseFirestore.getInstance(),
-                    auth = FirebaseAuth.getInstance()
-                )
-            }
+            val profileViewModel: ProfileViewModel = viewModel(
+                factory = viewModelFactory {
+                    initializer {
+                        ProfileViewModel(
+                            getProfile = GetProfileUseCase(ProfileRepositoryImpl()),
+                            logout = LogoutUseCase(
+                                authRepository = AuthRepositoryImpl(FirebaseAuthService()),
+                                notificationRepository = NotificationRepositoryImpl()
+                            ),
+                            sessionManager = SessionManager(context.applicationContext)
+                        )
+                    }
+                }
+            )
 
             ProfileScreen(
-                navController = navController,
                 viewModel = profileViewModel,
-                sessionManager = sessionManager
+                onBack = { navController.popBackStack() },
+                onLoggedOut = { navController.navigate("login") { popUpTo(0) } }
             )
         }
 
@@ -271,7 +220,7 @@ fun NavGraph(modifier: Modifier = Modifier) {
                 onRequestCreated = { navController.popBackStack() }
             )
         }
-
+/* Main Request list Route
         composable("request_list") {
 
             val donorDashboardViewModel = remember {
@@ -282,6 +231,23 @@ fun NavGraph(modifier: Modifier = Modifier) {
 
             RequestListScreen(navController = navController,
                 viewModel = donorDashboardViewModel
+            )
+        }
+
+ */
+        composable("request_list") {
+
+            val requestListViewModel: RequestListViewModel = viewModel(
+                factory = viewModelFactory {
+                    initializer {
+                        RequestListViewModel(GetOpenRequestsUseCase(DashboardRepositoryImpl()))
+                    }
+                }
+            )
+
+            RequestListScreen(
+                viewModel = requestListViewModel,
+                onBack = { navController.popBackStack() }
             )
         }
 

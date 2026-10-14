@@ -1,22 +1,64 @@
 package com.social.vitadrop.presentation.request.screen
 
-
 import android.Manifest
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Emergency
+import androidx.compose.material.icons.filled.LocationOff
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -25,13 +67,22 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.social.vitadrop.domain.model.Urgency
-import com.social.vitadrop.presentation.components.FormCard
 import com.social.vitadrop.presentation.request.CreateRequestEffect
 import com.social.vitadrop.presentation.request.CreateRequestIntent
 import com.social.vitadrop.presentation.request.CreateRequestState
 import com.social.vitadrop.presentation.request.RequestField
 import com.social.vitadrop.presentation.request.viewmodel.CreateRequestViewModel
 import com.social.vitadrop.utils.LocationHelper
+
+// Real-World Design Palette Constants
+private val AppBgColor = Color(0xFFF8FAFC)        // Slate 50 background
+private val CardBgColor = Color(0xFFFFFFFF)       // Pure White Surface
+private val BorderColor = Color(0xFFF1F5F9)       // Slate 100 soft border
+private val TextPrimary = Color(0xFF0F172A)       // Slate 900 primary text
+private val TextSecondary = Color(0xFF64748B)     // Slate 500 secondary label
+private val PrimaryAccent = Color(0xFFE11D48)     // Deep Crimson/Rose
+private val SoftBadgeBg = Color(0xFFFFF1F2)      // Light Rose tint
+private val LightAccentBg = Color(0xFFFFE4E6)
 
 // =====================================================================
 // STATEFUL WRAPPER: ViewModel, location permission, one-shot effects
@@ -108,16 +159,41 @@ private fun CreateRequestContent(
     fun change(field: RequestField): (String) -> Unit =
         { onIntent(CreateRequestIntent.FieldChanged(field, it)) }
 
+    val fieldColors = OutlinedTextFieldDefaults.colors(
+        focusedBorderColor = PrimaryAccent,
+        unfocusedBorderColor = BorderColor,
+        focusedLabelColor = PrimaryAccent,
+        unfocusedLabelColor = TextSecondary,
+        focusedContainerColor = CardBgColor,
+        unfocusedContainerColor = CardBgColor,
+        cursorColor = PrimaryAccent
+    )
+
     Scaffold(
-        containerColor = Color(0xFFFFF5F5),
+        containerColor = AppBgColor,
         topBar = {
             TopAppBar(
-                title = { Text("Request Blood", fontWeight = FontWeight.Bold) },
+                title = {
+                    Text(
+                        text = "Request Blood",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = TextPrimary
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Back",
+                            tint = TextPrimary,
+                            modifier = Modifier.size(20.dp)
+                        )
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = CardBgColor
+                )
             )
         }
     ) { padding ->
@@ -125,32 +201,54 @@ private fun CreateRequestContent(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color(0xFFFFF5F5))
                 .padding(padding),
             contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
 
             // HEADER
             item {
                 Card(
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFD32F2F)),
-                    shape = RoundedCornerShape(20.dp)
+                    colors = CardDefaults.cardColors(containerColor = CardBgColor),
+                    shape = RoundedCornerShape(16.dp),
+                    border = BorderStroke(1.dp, BorderColor),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                 ) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(20.dp)
+                            .padding(16.dp)
                     ) {
-                        Text(
-                            text = "Emergency Blood Request",
-                            style = MaterialTheme.typography.headlineSmall,
-                            color = Color.White
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .clip(CircleShape)
+                                    .background(SoftBadgeBg),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Emergency,
+                                    contentDescription = null,
+                                    tint = PrimaryAccent,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(
+                                text = "Emergency Blood Request",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = TextPrimary
+                            )
+                        }
+
                         Spacer(modifier = Modifier.height(6.dp))
+
                         Text(
                             text = "Fill all required details carefully for faster donor response.",
-                            color = Color.White.copy(alpha = 0.9f)
+                            fontSize = 12.sp,
+                            color = TextSecondary
                         )
                     }
                 }
@@ -158,89 +256,133 @@ private fun CreateRequestContent(
 
             // PATIENT INFORMATION
             item {
-                FormCard(title = "Patient Information", icon = Icons.Default.Person) {
+                FormSectionCard(title = "PATIENT INFORMATION") {
                     OutlinedTextField(
                         value = state.patientName,
                         onValueChange = change(RequestField.PATIENT_NAME),
-                        label = { Text("Patient Name") },
+                        label = { Text("Patient Name", fontSize = 12.sp) },
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
+                        singleLine = true,
+                        colors = fieldColors,
+                        shape = RoundedCornerShape(10.dp)
                     )
 
                     OutlinedTextField(
                         value = state.bloodGroup,
                         onValueChange = change(RequestField.BLOOD_GROUP),
-                        label = { Text("Blood Group (e.g. O+)") },
+                        label = { Text("Blood Group (e.g. O+)", fontSize = 12.sp) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(
                             capitalization = KeyboardCapitalization.Characters
-                        )
+                        ),
+                        colors = fieldColors,
+                        shape = RoundedCornerShape(10.dp)
                     )
 
                     OutlinedTextField(
                         value = state.unitsRequired,
                         onValueChange = change(RequestField.UNITS),
-                        label = { Text("Units Required") },
+                        label = { Text("Units Required", fontSize = 12.sp) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        colors = fieldColors,
+                        shape = RoundedCornerShape(10.dp)
                     )
                 }
             }
 
-            // LOCATION (hospital name now comes from the logged-in hospital's profile)
+            // LOCATION
             item {
-                FormCard(title = "Location", icon = Icons.Default.LocationOn) {
+                FormSectionCard(title = "LOCATION") {
                     OutlinedTextField(
                         value = state.city,
                         onValueChange = change(RequestField.CITY),
-                        label = { Text("City") },
+                        label = { Text("City", fontSize = 12.sp) },
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
+                        singleLine = true,
+                        colors = fieldColors,
+                        shape = RoundedCornerShape(10.dp)
                     )
 
-                    Text(
-                        text = if (state.latitude.isNotBlank()) {
-                            "📍 Location detected"
-                        } else {
-                            "⚠ Location not detected yet"
-                        },
-                        fontSize = 12.sp,
-                        color = if (state.latitude.isNotBlank()) Color(0xFF2E7D32) else Color(0xFFEF6C00)
-                    )
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = if (state.latitude.isNotBlank()) Color(0xFFF0FDF4) else Color(0xFFFFFBEB),
+                        border = BorderStroke(
+                            1.dp,
+                            if (state.latitude.isNotBlank()) Color(0xFFBBF7D0) else Color(0xFFFDE68A)
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = if (state.latitude.isNotBlank()) Icons.Default.LocationOn else Icons.Default.LocationOff,
+                                contentDescription = null,
+                                tint = if (state.latitude.isNotBlank()) Color(0xFF16A34A) else Color(0xFFD97706),
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = if (state.latitude.isNotBlank()) {
+                                    "Location detected via GPS"
+                                } else {
+                                    "Location not detected yet"
+                                },
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = if (state.latitude.isNotBlank()) Color(0xFF15803D) else Color(0xFFB45309)
+                            )
+                        }
+                    }
                 }
             }
 
             // CONTACT INFORMATION
             item {
-                FormCard(title = "Contact Information", icon = Icons.Default.Phone) {
+                FormSectionCard(title = "CONTACT INFORMATION") {
                     OutlinedTextField(
                         value = state.contactPerson,
                         onValueChange = change(RequestField.CONTACT_PERSON),
-                        label = { Text("Contact Person") },
+                        label = { Text("Contact Person", fontSize = 12.sp) },
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
+                        singleLine = true,
+                        colors = fieldColors,
+                        shape = RoundedCornerShape(10.dp)
                     )
 
                     OutlinedTextField(
                         value = state.contactNumber,
                         onValueChange = change(RequestField.CONTACT_NUMBER),
-                        label = { Text("Contact Number") },
-                        leadingIcon = { Icon(Icons.Default.Phone, contentDescription = null) },
+                        label = { Text("Contact Number", fontSize = 12.sp) },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Phone,
+                                contentDescription = null,
+                                tint = TextSecondary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone)
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                        colors = fieldColors,
+                        shape = RoundedCornerShape(10.dp)
                     )
                 }
             }
 
             // REQUEST DETAILS
             item {
-                FormCard(title = "Request Details", icon = Icons.Default.Warning) {
+                FormSectionCard(title = "REQUEST DETAILS") {
                     Text(
                         text = "Urgency Level",
-                        style = MaterialTheme.typography.bodyMedium
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = TextSecondary
                     )
 
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -257,35 +399,57 @@ private fun CreateRequestContent(
                     OutlinedTextField(
                         value = state.description,
                         onValueChange = change(RequestField.DESCRIPTION),
-                        label = { Text("Description") },
+                        label = { Text("Description", fontSize = 12.sp) },
                         modifier = Modifier.fillMaxWidth(),
-                        minLines = 4
+                        minLines = 3,
+                        colors = fieldColors,
+                        shape = RoundedCornerShape(10.dp)
                     )
 
                     // EMERGENCY TOGGLE
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Checkbox(
-                            checked = state.isEmergency,
-                            onCheckedChange = { onIntent(CreateRequestIntent.EmergencyToggled(it)) }
-                        )
+                    Surface(
+                        onClick = { onIntent(CreateRequestIntent.EmergencyToggled(!state.isEmergency)) },
+                        shape = RoundedCornerShape(10.dp),
+                        color = if (state.isEmergency) SoftBadgeBg else AppBgColor,
+                        border = BorderStroke(
+                            1.dp,
+                            if (state.isEmergency) LightAccentBg else BorderColor
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
+                        ) {
+                            Checkbox(
+                                checked = state.isEmergency,
+                                onCheckedChange = { onIntent(CreateRequestIntent.EmergencyToggled(it)) },
+                                colors = CheckboxDefaults.colors(
+                                    checkedColor = PrimaryAccent,
+                                    uncheckedColor = TextSecondary
+                                )
+                            )
 
-                        Icon(
-                            imageVector = Icons.Default.Warning,
-                            contentDescription = null,
-                            tint = Color.Red
-                        )
+                            Icon(
+                                imageVector = Icons.Default.Warning,
+                                contentDescription = null,
+                                tint = if (state.isEmergency) PrimaryAccent else TextSecondary,
+                                modifier = Modifier.size(16.dp)
+                            )
 
-                        Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
 
-                        Text(
-                            text = if (state.isEmergency) {
-                                "Emergency Request Enabled 🚨"
-                            } else {
-                                "Mark as Emergency"
-                            },
-                            color = if (state.isEmergency) Color.Red else Color.Gray,
-                            fontWeight = if (state.isEmergency) FontWeight.Bold else FontWeight.Normal
-                        )
+                            Text(
+                                text = if (state.isEmergency) {
+                                    "Emergency Request Enabled 🚨"
+                                } else {
+                                    "Mark as Emergency"
+                                },
+                                fontSize = 12.sp,
+                                color = if (state.isEmergency) PrimaryAccent else TextPrimary,
+                                fontWeight = if (state.isEmergency) FontWeight.Bold else FontWeight.Medium
+                            )
+                        }
                     }
                 }
             }
@@ -294,12 +458,16 @@ private fun CreateRequestContent(
             if (state.errorMessage != null) {
                 item {
                     Card(
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFEBEE))
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFFEF2F2)),
+                        border = BorderStroke(1.dp, Color(0xFFFCA5A5))
                     ) {
                         Text(
-                            text = state.errorMessage,
-                            color = Color(0xFFC62828),
-                            modifier = Modifier.padding(16.dp)
+                            text = state.errorMessage.orEmpty(),
+                            color = PrimaryAccent,
+                            fontSize = 12.sp,
+                            modifier = Modifier.padding(14.dp)
                         )
                     }
                 }
@@ -312,21 +480,59 @@ private fun CreateRequestContent(
                     enabled = !state.isLoading,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F))
+                        .height(46.dp),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = PrimaryAccent,
+                        disabledContainerColor = PrimaryAccent.copy(alpha = 0.5f)
+                    )
                 ) {
                     if (state.isLoading) {
                         CircularProgressIndicator(
-                            modifier = Modifier.size(22.dp),
+                            modifier = Modifier.size(18.dp),
                             color = Color.White,
                             strokeWidth = 2.dp
                         )
                     } else {
-                        Text("Submit Blood Request")
+                        Text(
+                            text = "Submit Blood Request",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color.White
+                        )
                     }
                 }
+                Spacer(modifier = Modifier.height(16.dp))
             }
+        }
+    }
+}
+
+@Composable
+private fun FormSectionCard(
+    title: String,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = CardBgColor),
+        border = BorderStroke(1.dp, BorderColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text(
+                text = title,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                color = TextSecondary,
+                letterSpacing = 0.8.sp
+            )
+
+            content()
         }
     }
 }
@@ -340,6 +546,26 @@ private fun UrgencyChip(
     FilterChip(
         selected = selected,
         onClick = onClick,
-        label = { Text(title) }
+        label = {
+            Text(
+                text = title,
+                fontSize = 11.sp,
+                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium
+            )
+        },
+        shape = RoundedCornerShape(8.dp),
+        colors = FilterChipDefaults.filterChipColors(
+            selectedContainerColor = SoftBadgeBg,
+            selectedLabelColor = PrimaryAccent,
+            containerColor = AppBgColor,
+            labelColor = TextSecondary
+        ),
+        border = FilterChipDefaults.filterChipBorder(
+            enabled = true,
+            selected = selected,
+            borderColor = BorderColor,
+            selectedBorderColor = LightAccentBg,
+            borderWidth = 1.dp
+        )
     )
 }
