@@ -110,5 +110,11 @@ class FirebaseAuthService {
             Log.e("VITA_REGISTER", "Registration failed", e)
             Result.failure(e)
         }
+
+
+    }
+
+    fun logout() {
+        auth.signOut()
     }
 }

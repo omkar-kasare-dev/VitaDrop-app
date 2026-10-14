@@ -18,4 +18,6 @@ class AuthRepositoryImpl(
     ): Result<String> {
         return service.register(user, password)
     }
+
+    override fun logout() = service.logout()
 }

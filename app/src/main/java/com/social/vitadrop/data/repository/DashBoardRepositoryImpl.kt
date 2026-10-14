@@ -2,372 +2,108 @@ package com.social.vitadrop.data.repository
 
 // Updated DashBoardImplementation.
 
+
 import android.util.Log
-import com.google.firebase.firestore.DocumentSnapshot
+import com.google.firebase.firestore.AggregateSource
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Query
+import com.social.vitadrop.data.mapper.toRequestModel
 import com.social.vitadrop.domain.model.RequestModel
-import com.social.vitadrop.utils.FirebaseProvider
+import com.social.vitadrop.domain.repository.DashboardRepository
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withTimeoutOrNull
+import java.io.IOException
 
 class DashboardRepositoryImpl : DashboardRepository {
 
     private val db = FirebaseFirestore.getInstance()
 
-     // DONOR COUNT
-
-    override suspend fun getDonorCount(): Int {
-
-        return try {
-
-           // Log.d("FIREBASE_DEBUG", "Fetching donor count...")
-
-            val result = db.collection("donors")
-                .get()
-                .await()
-/*
-            Log.d(
-                "FIREBASE_DEBUG",
-                "Donors Count: ${result.size()}"
-            )
-
- */
-
-            result.size()
-
-        } catch (e: Exception) {
-
-            Log.e(
-                "FIREBASE_ERROR",
-                "Error fetching donors: ${e.message}",
-                e
-            )
-
-            0
-        }
-    }
-
-
-     //HOSPITAL COUNT
-
-    override suspend fun getHospitalCount(): Int {
-
-        return try {
-
-           // Log.d("FIREBASE_DEBUG", "Fetching hospital count...")
-
-            val result = db.collection("hospitals")
-                .get()
-                .await()
-/*
-            Log.d(
-                "FIREBASE_DEBUG",
-                "Hospitals Count: ${result.size()}"
-            )
-
-
- */
-            result.size()
-
-        } catch (e: Exception) {
-
-            Log.e(
-                "FIREBASE_ERROR",
-                "Error fetching hospitals: ${e.message}",
-                e
-            )
-
-            0
-        }
-    }
-
-
-     //REQUEST COUNT
-
-    override suspend fun getRequestCount(): Int {
-
-        return try {
-
-            //Log.d("FIREBASE_DEBUG", "Fetching request count...")
-
-            val result = db.collection("requests")
-                .get()
-                .await()
-/*
-            Log.d(
-                "FIREBASE_DEBUG",
-                "Requests Count: ${result.size()}"
-            )
-
- */
-
-            result.size()
-
-        } catch (e: Exception) {
-/*
-            Log.e(
-                "FIREBASE_ERROR",
-                "Error fetching requests: ${e.message}",
-                e
-            )
-
- */
-
-            0
-        }
-    }
-
-
-     // EMERGENCY REQUESTS
-
-    override suspend fun getEmergencyRequests(): List<RequestModel> {
-
-        return try {
-/*
-            Log.d(
-                "FIREBASE_DEBUG",
-                "Fetching emergency requests..."
-            )
-
-
- */
-            val result = db.collection("requests")
-                .whereEqualTo("emergency", true)
-                .get()
-                .await()
-/*
-            Log.d(
-                "FIREBASE_DEBUG",
-                "Emergency Requests Count: ${result.size()}"
-            )
-
- */
-            result.documents.mapNotNull { doc ->
-
-                try {
-
-                  //  Log.d(
-                   //     "EMERGENCY_REQUEST_DOC",
-                   //     "Document Data = ${doc.data}"
-                  //  )
-
-                    doc.toRequestModel()
-
-                } catch (e: Exception) {
-
-                   /* Log.e(
-                        "EMERGENCY_PARSE_ERROR",
-                        "Failed document: ${doc.id}",
-                        e
-                    )
-
-                    */
-
-                    null
-                }
-            }
-
-        } catch (e: Exception) {
-/*
-            Log.e(
-                "FIREBASE_ERROR",
-                "Error fetching emergency requests: ${e.message}",
-                e
-            )
-
- */
-
-            emptyList()
-        }
-    }
-
-    /**
-     * ALL REQUESTS
-     */
-    override suspend fun getAllRequests(): List<RequestModel> {
-
-        return try {
-
-            Log.d(
-                "FIREBASE_DEBUG",
-                "Fetching all requests..."
-            )
-
-            val result = db.collection("requests")
-                .get()
-                .await()
-
-            Log.d(
-                "FIREBASE_DEBUG",
-                "Total Requests Fetched: ${result.size()}"
-            )
-
-            /**
-             * MODIFICATION:
-             * Added safe parsing using mapNotNull.
-             * Prevents one bad document from crashing all requests.
-             */
-            result.documents.mapNotNull { doc ->
-
-                try {
-
-                    Log.d(
-                        "REQUEST_DOC",
-                        "Document Data = ${doc.data}"
-                    )
-
-                    doc.toRequestModel()
-
-                } catch (e: Exception) {
-
-                    Log.e(
-                        "REQUEST_PARSE_ERROR",
-                        "Failed document: ${doc.id}",
-                        e
-                    )
-
-                    null
-                }
-            }
-
-        } catch (e: Exception) {
-
-            Log.e(
-                "FIREBASE_ERROR",
-                "Error fetching all requests: ${e.message}",
-                e
-            )
-
-            emptyList()
-        }
-    }
-
-
-     // DOCUMENT TO MODEL CONVERTER
-
-    private fun DocumentSnapshot.toRequestModel(): RequestModel {
-
-        /**
-         * ====================================================
-         * MODIFICATION:
-         * Safer location parsing.
-         * Prevents ClassCastException.
-         * ====================================================
-         */
-        val locationMap = get("location") as? Map<*, *>
-
-        val latitude = (
-                locationMap?.get("latitude") as? Number
-                )?.toDouble() ?: 0.0
-
-        val longitude = (
-                locationMap?.get("longitude") as? Number
-                )?.toDouble() ?: 0.0
-
-        /**
-         * ====================================================
-         * MODIFICATION:
-         * OLD:
-         * getLong("unitsRequired")?.toString() ?: ""
-         * NEW:
-         * Handles BOTH:
-         * - Number
-         * - String
-         * Prevents Firebase type mismatch crash.
-         * ====================================================
-         */
-        val unitsRequiredValue = when (val value = get("unitsRequired")) {
-
-            is Long -> value
-
-            is Int -> value.toLong()
-
-            is Double -> value.toLong()
-
-            is String -> value.toLongOrNull() ?: 0
-
-            else -> 0
-        }
-
-        return RequestModel(
-
-
-             //REQUEST INFO
-
-            requestId = getString("requestId") ?: id,
-
-            requestedBy = getString("requestedBy") ?: "",
-
-            hospitalId = getString("hospitalId") ?: "",
-
-
-             // PATIENT INFO
-
-            patientName = getString("patientName") ?: "",
-
-
-             // BLOOD INFORMATION
-
-            bloodGroup = getString("bloodGroup") ?: "",
-
-
-             // MODIFICATION:
-             // unitsRequired now uses Long.
-
-            unitsRequired = unitsRequiredValue,
-
-
-             // CONTACT INFORMATION
-
-            contactPerson = getString("contactPerson") ?: "",
-
-            contactPhone = getString("contactPhone") ?: "",
-
-          // Hospital INfo
-            hospitalName = getString("hospitalName") ?: "",
-
-            city = getString("city") ?: "",
-
-
-             // LOCATION Information
-
-            location = mapOf(
-
-                "latitude" to latitude,
-
-                "longitude" to longitude
-            ),
-
-
-            urgency = getString("urgency") ?: "medium",
-
-            status = getString("status") ?: "pending",
-
-            description = getString("description") ?: "",
-
-
-             // DONOR TRACKING
-
-            acceptedDonors =
-                get("acceptedDonors") as? List<String>
-                    ?: emptyList(),
-
-            rejectedDonors =
-                get("rejectedDonors") as? List<String>
-                    ?: emptyList(),
-
-            completedBy =
-                get("completedBy") as? List<String>
-                    ?: emptyList(),
-
-
-             // EMERGENCY
-
-            emergency = getBoolean("emergency") ?: false,
-
-             //* TIMESTAMP
-
-            createdAt =
-                getTimestamp("createdAt")
+    // ------------------------------------------------------------------
+    // COUNTS
+    // Before: every donor / hospital / request document was DOWNLOADED just to count it.
+    // Now: Firestore counts on the server and sends back one number.
+    // (needs firebase-firestore 24.4.0+; aggregate queries need a server connection)
+    // ------------------------------------------------------------------
+    override suspend fun getDonorCount(): Result<Int> = count("donors")
+
+    override suspend fun getHospitalCount(): Result<Int> = count("hospitals")
+
+    override suspend fun getRequestCount(): Result<Int> = count("requests")
+
+    // ------------------------------------------------------------------
+    // REQUEST LISTS (newest first)
+    // ------------------------------------------------------------------
+    override suspend fun getEmergencyRequests(): Result<List<RequestModel>> =
+        loadRequests(
+            // Equality-only query: no composite index needed. Sorted below, in memory.
+            db.collection("requests").whereEqualTo("emergency", true)
         )
+
+    override suspend fun getAllRequests(): Result<List<RequestModel>> =
+        loadRequests(
+            // Single-field ordering + limit: no composite index needed, and no "download everything".
+            db.collection("requests")
+                .orderBy("createdAt", Query.Direction.DESCENDING)
+                .limit(MAX_REQUESTS)
+        )
+
+    // ------------------------------------------------------------------
+    // HELPERS
+    // ------------------------------------------------------------------
+    private suspend fun count(collection: String): Result<Int> {
+        return try {
+            val snapshot = withTimeoutOrNull(TIMEOUT_MS) {
+                db.collection(collection).count().get(AggregateSource.SERVER).await()
+            }
+
+            if (snapshot == null) {
+                Result.failure<Int>(IOException(NETWORK_MESSAGE))
+            } else {
+                Result.success(snapshot.count.toInt())
+            }
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Count failed for $collection", e)
+            Result.failure(e)
+        }
+    }
+
+    private suspend fun loadRequests(query: Query): Result<List<RequestModel>> {
+        return try {
+            val snapshot = withTimeoutOrNull(TIMEOUT_MS) {
+                query.get().await()
+            }
+
+            if (snapshot == null) {
+                Result.failure<List<RequestModel>>(IOException(NETWORK_MESSAGE))
+            } else {
+                val requests = snapshot.documents
+                    .mapNotNull { doc ->
+                        try {
+                            doc.toRequestModel()
+                        } catch (e: Exception) {
+                            // One bad document must not break the whole list.
+                            // Only the document id is logged (never patient data).
+                            Log.e(TAG, "Could not parse request ${doc.id}", e)
+                            null
+                        }
+                    }
+                    .sortedByDescending { it.createdAt?.seconds ?: 0L }
+
+                Result.success(requests)
+            }
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Loading requests failed", e)
+            Result.failure(e)
+        }
+    }
+
+    private companion object {
+        const val TAG = "DASHBOARD_REPO"
+        const val TIMEOUT_MS = 15_000L
+        const val MAX_REQUESTS = 50L
+        const val NETWORK_MESSAGE =
+            "Could not reach the server. Check your internet connection and try again."
     }
 }

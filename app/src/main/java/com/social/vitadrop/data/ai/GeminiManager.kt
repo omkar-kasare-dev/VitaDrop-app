@@ -17,7 +17,7 @@ class GeminiManager {
     private val generativeModel =
         GenerativeModel(
 
-            modelName = "gemini-2.0-flash",
+            modelName = "gemini-3.8-flash",
 
             apiKey = BuildConfig.GEMINI_API_KEY
         )
