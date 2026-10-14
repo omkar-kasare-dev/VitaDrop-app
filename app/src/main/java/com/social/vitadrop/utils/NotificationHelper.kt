@@ -1,112 +1,82 @@
 package com.social.vitadrop.utils
 
+
+import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import com.social.vitadrop.MainActivity
-import com.example.kotlinbasics.R
-import android.Manifest
-import android.content.pm.PackageManager
 import androidx.core.content.ContextCompat
+import com.example.kotlinbasics.R
+import com.social.vitadrop.MainActivity
 
-class NotificationHelper(
-    private val context: Context
-) {
+// Keep your existing MainActivity import if it is in another package.
+
+class NotificationHelper(private val context: Context) {
 
     companion object {
-
-        const val CHANNEL_ID =
-            "emergency_blood_requests"
-
-        const val CHANNEL_NAME =
-            "Emergency Blood Requests"
+        const val CHANNEL_ID = "emergency_blood_requests"
+        private const val CHANNEL_NAME = "Emergency Blood Requests"
     }
 
-    /**
-     * CREATE NOTIFICATION CHANNEL
-     */
     fun createNotificationChannel() {
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-
             val channel = NotificationChannel(
                 CHANNEL_ID,
                 CHANNEL_NAME,
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
-
-                description =
-                    "Emergency blood request alerts"
+                description = "Notifications about emergency blood requests"
             }
 
             val manager =
-                context.getSystemService(
-                    NotificationManager::class.java
-                )
+                context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
             manager.createNotificationChannel(channel)
         }
     }
 
-    /**
-     * SHOW NOTIFICATION
-     */
-    /*
-    fun showNotification(
-        title: String,
-        body: String
-    ) {
+    fun showNotification(title: String, body: String) {
+        createNotificationChannel()
 
-        val intent = Intent(
-            context,
-            MainActivity::class.java
-        )
-
-        intent.flags =
-            Intent.FLAG_ACTIVITY_NEW_TASK or
-                    Intent.FLAG_ACTIVITY_CLEAR_TASK
-
-        val pendingIntent =
-            PendingIntent.getActivity(
-                context,
-                0,
-                intent,
-                PendingIntent.FLAG_IMMUTABLE or
-                        PendingIntent.FLAG_UPDATE_CURRENT
-            )
-
-        val builder =
-            NotificationCompat.Builder(
-                context,
-                CHANNEL_ID
-            )
-                .setSmallIcon(R.drawable.ic_notification)
-                .setContentTitle(title)
-                .setContentText(body)
-                .setPriority(
-                    NotificationCompat.PRIORITY_HIGH
-                )
-                .setAutoCancel(true)
-                .setContentIntent(pendingIntent)
-
+        // Android 13 and later require notification permission.
         if (
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             ContextCompat.checkSelfPermission(
                 context,
                 Manifest.permission.POST_NOTIFICATIONS
-            ) == PackageManager.PERMISSION_GRANTED
+            ) != PackageManager.PERMISSION_GRANTED
         ) {
-
-            NotificationManagerCompat
-                .from(context)
-                .notify(
-                    System.currentTimeMillis().toInt(),
-                    builder.build()
-                )
+            return
         }
-    }*/
+
+        val intent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+
+        val pendingIntent = PendingIntent.getActivity(
+            context,
+            0,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle(title.ifBlank { "VitaDrop" })
+            .setContentText(body)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)
+            .setContentIntent(pendingIntent)
+            .build()
+
+        NotificationManagerCompat.from(context)
+            .notify(System.currentTimeMillis().toInt(), notification)
+    }
 }

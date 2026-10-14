@@ -1,4 +1,4 @@
-package com.social.vitadrop.presentation.screens.donor.components
+package com.social.vitadrop.presentation.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement

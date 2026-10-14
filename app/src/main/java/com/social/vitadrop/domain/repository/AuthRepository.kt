@@ -11,5 +11,7 @@ interface AuthRepository {
         user: User,
         password: String
     ): Result<String>
+
+    fun logout()
 }
 
