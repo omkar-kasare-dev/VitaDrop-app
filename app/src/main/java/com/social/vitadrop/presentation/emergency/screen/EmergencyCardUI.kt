@@ -37,6 +37,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.social.vitadrop.domain.model.RequestModel
+import com.social.vitadrop.domain.model.UserRole
 import com.social.vitadrop.presentation.emergency.EmergencyIntent
 import com.social.vitadrop.presentation.emergency.EmergencyState
 
@@ -44,6 +45,7 @@ import com.social.vitadrop.presentation.emergency.EmergencyState
 fun EmergencyCardUI(
     request: RequestModel,
     uiState: EmergencyState,
+    role: UserRole = UserRole.DONOR, // Added role parameter to support dynamic theme switching
     onIntent: (EmergencyIntent) -> Unit,
     onViewContact: (String) -> Unit = {}
 ) {
@@ -58,7 +60,11 @@ fun EmergencyCardUI(
     val responseCount = uiState.responseCounts[requestId] ?: 0
     val isResponding = requestId in uiState.respondingRequestIds
 
-    val primaryRose = Color(0xFFE11D48)
+    // Dynamic Theme Color Mapping based on UserRole
+    val isHospital = role == UserRole.HOSPITAL
+    val primaryAccent = if (isHospital) Color(0xFF0284C7) else Color(0xFFE11D48)
+    val softAccentBg = if (isHospital) Color(0xFFE0F2FE) else Color(0xFFFFF1F2)
+
     val textDark = Color(0xFF0F172A)
     val textMuted = Color(0xFF64748B)
     val borderLight = Color(0xFFE2E8F0)
@@ -89,13 +95,13 @@ fun EmergencyCardUI(
                         modifier = Modifier
                             .size(6.dp)
                             .clip(CircleShape)
-                            .background(primaryRose)
+                            .background(primaryAccent)
                     )
                     Text(
-                        text = "EMERGENCY REQUEST",
+                        text = if (isHospital) "HOSPITAL EMERGENCY REQUEST" else "EMERGENCY REQUEST",
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
-                        color = primaryRose,
+                        color = primaryAccent,
                         letterSpacing = 0.5.sp
                     )
                 }
@@ -104,7 +110,7 @@ fun EmergencyCardUI(
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(6.dp))
-                        .background(Color(0xFFFFF1F2))
+                        .background(softAccentBg)
                         .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
                     Row(
@@ -114,14 +120,14 @@ fun EmergencyCardUI(
                         Icon(
                             imageVector = Icons.Default.Bloodtype,
                             contentDescription = null,
-                            tint = primaryRose,
+                            tint = primaryAccent,
                             modifier = Modifier.size(14.dp)
                         )
                         Text(
                             text = request.bloodGroup,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
-                            color = primaryRose
+                            color = primaryAccent
                         )
                     }
                 }
@@ -185,7 +191,7 @@ fun EmergencyCardUI(
                     .height(38.dp),
                 shape = RoundedCornerShape(8.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = primaryRose,
+                    containerColor = primaryAccent,
                     disabledContainerColor = Color(0xFFF1F5F9),
                     disabledContentColor = Color(0xFF94A3B8)
                 ),

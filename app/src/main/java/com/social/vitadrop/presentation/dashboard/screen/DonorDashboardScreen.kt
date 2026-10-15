@@ -1,6 +1,5 @@
 package com.social.vitadrop.presentation.dashboard.screen
-
-
+/*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -119,20 +118,6 @@ private fun DashboardContent(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Column {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(5.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(5.dp)
-                                    .clip(CircleShape)
-                                    .background(freshEmerald)
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(2.dp))
-
                         Text(
                             text = "VitaDrop",
                             fontSize = 18.sp,
@@ -252,14 +237,6 @@ private fun DashboardContent(
             // LOADING BAR (before: the screen never showed loading)
             if (state.isLoading) {
                 item {
-                    /*
-                    LinearProgressIndicator(
-                        modifier = Modifier.fillMaxWidth(),
-                        color = primaryRose
-                    )
-
-                     */
-
                     VitaDropLoader(
                         style = VitaDropLoaderStyle.Dialog,
                         message = "Loading...."
@@ -370,3 +347,57 @@ private fun DashboardErrorBanner(
         }
     }
 }
+
+ */
+
+import androidx.compose.runtime.*
+import com.social.vitadrop.domain.model.UserRole
+import com.social.vitadrop.presentation.emergency.viewmodel.EmergencyViewModel
+import com.social.vitadrop.presentation.dashboard.DonorDashboardIntent
+import com.social.vitadrop.presentation.dashboard.components.DonorDashboardContent
+import com.social.vitadrop.presentation.dashboard.components.HospitalDashboardContent
+import com.social.vitadrop.presentation.dashboard.viewmodel.DonorDashboardViewModel
+
+@Composable
+fun DonorDashboardScreen(
+    role: UserRole,
+    viewModel: DonorDashboardViewModel,
+    emergencyViewModel: EmergencyViewModel,
+    onProfileClick: () -> Unit,
+    onDonorsClick: () -> Unit,
+    onEmergencyClick: () -> Unit,
+    onRequestBloodClick: () -> Unit,
+    onChatClick: () -> Unit,
+    onViewContact: (String) -> Unit
+) {
+    val state by viewModel.state.collectAsState()
+
+    LaunchedEffect(Unit) {
+        viewModel.onIntent(DonorDashboardIntent.Refresh)
+    }
+
+    if (role == UserRole.HOSPITAL) {
+        HospitalDashboardContent(
+            state = state,
+            emergencyViewModel = emergencyViewModel,
+            onRefresh = { viewModel.onIntent(DonorDashboardIntent.Refresh) },
+            onProfileClick = onProfileClick,
+            onDonorsClick = onDonorsClick,
+            onEmergencyClick = onEmergencyClick,
+            onRequestBloodClick = onRequestBloodClick,
+            onChatClick = onChatClick,
+            onViewContact = onViewContact
+        )
+    } else {
+        DonorDashboardContent(
+            state = state,
+            emergencyViewModel = emergencyViewModel,
+            onRefresh = { viewModel.onIntent(DonorDashboardIntent.Refresh) },
+            onProfileClick = onProfileClick,
+            onEmergencyClick = onEmergencyClick,
+            onChatClick = onChatClick,
+            onViewContact = onViewContact
+        )
+    }
+}
+

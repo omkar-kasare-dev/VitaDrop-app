@@ -10,21 +10,20 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.social.vitadrop.domain.model.RequestModel
+import com.social.vitadrop.domain.model.UserRole
 import com.social.vitadrop.presentation.emergency.EmergencyEffect
 import com.social.vitadrop.presentation.emergency.viewmodel.EmergencyViewModel
-
-// EmergencyCardUI is now in this same package (presentation.emergency.screen), so it needs no import.
 
 @Composable
 fun EmergencyListScreen(
     requests: List<RequestModel>,
     emergencyViewModel: EmergencyViewModel,
+    role: UserRole = UserRole.DONOR,
     onViewContact: (String) -> Unit
 ) {
     val state by emergencyViewModel.state.collectAsState()
     val context = LocalContext.current
 
-    // One-shot messages from the ViewModel
     LaunchedEffect(Unit) {
         emergencyViewModel.effect.collect { effect ->
             when (effect) {
@@ -41,6 +40,7 @@ fun EmergencyListScreen(
             EmergencyCardUI(
                 request = request,
                 uiState = state,
+                role = role,
                 onIntent = emergencyViewModel::onIntent,
                 onViewContact = onViewContact
             )
