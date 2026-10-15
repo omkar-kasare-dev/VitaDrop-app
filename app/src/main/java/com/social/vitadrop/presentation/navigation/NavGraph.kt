@@ -1,7 +1,9 @@
 package com.social.vitadrop.presentation.navigation
 
-
+import android.util.Log
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -67,7 +69,9 @@ import com.social.vitadrop.presentation.profile.ProfileViewModel
 
 
 @Composable
-fun NavGraph(modifier: Modifier = Modifier) {
+fun NavGraph(modifier: Modifier = Modifier,
+             pendingRequestId: String? = null,
+             onPendingRequestHandled: () -> Unit = {}) {
 
     val navController = rememberNavController()
     val context = LocalContext.current
@@ -145,7 +149,7 @@ fun NavGraph(modifier: Modifier = Modifier) {
             )
         }
 
-
+/*
         composable("dashboard/{role}") { backStackEntry ->
 
             // Unknown roles (for example an old saved "admin" session) fall back to the donor view, as before
@@ -161,6 +165,65 @@ fun NavGraph(modifier: Modifier = Modifier) {
             )
 
             val emergencyViewModel = rememberEmergencyViewModel()
+
+            DonorDashboardScreen(
+                role = role,
+                viewModel = dashboardViewModel,
+                emergencyViewModel = emergencyViewModel,
+                onProfileClick = { navController.navigate("profile") },
+                onDonorsClick = { navController.navigate("donors_list") },
+                onEmergencyClick = { navController.navigate("request_list") },
+                onRequestBloodClick = { navController.navigate("requestBlood") },
+                onChatClick = { navController.navigate("chat_assistant") },
+                onViewContact = { requestId -> navController.navigate("request_details/$requestId") }
+            )
+        }
+
+        */
+        composable("dashboard/{role}") { backStackEntry ->
+
+            val sessionRole = remember {
+                UserRole.fromKey(SessionManager(context.applicationContext).getUserRole())
+            }
+            val routeRole = UserRole.fromKey(backStackEntry.arguments?.getString("role").orEmpty())
+
+            // TEMPORARY: remove after the bug is fixed
+            Log.d("NAV_DEBUG", "dashboard route role=$routeRole, saved session role=$sessionRole")
+
+            // The saved session wins. It was verified at login.
+            val role = sessionRole ?: routeRole
+
+            // No role at all: never guess "donor". Go to login.
+            if (role == null) {
+                LaunchedEffect(Unit) {
+                    navController.navigate("login") { popUpTo(0) }
+                }
+                return@composable
+            }
+
+
+
+            val dashboardViewModel: DonorDashboardViewModel = viewModel(
+                factory = viewModelFactory {
+                    initializer {
+                        DonorDashboardViewModel(GetDashboardUseCase(DashboardRepositoryImpl()))
+                    }
+                }
+            )
+
+            val emergencyViewModel = rememberEmergencyViewModel()
+
+            // A notification was tapped: hospitals jump to the request. Donors stay on the dashboard,
+// where the Respond button is (request details show contact data, which a donor should
+// only see after responding).
+            LaunchedEffect(pendingRequestId, role) {
+                val requestId = pendingRequestId ?: return@LaunchedEffect
+                if (role == UserRole.HOSPITAL) {
+                    navController.navigate("request_details/$requestId")
+                }
+                onPendingRequestHandled()
+            }
+
 
             DonorDashboardScreen(
                 role = role,
