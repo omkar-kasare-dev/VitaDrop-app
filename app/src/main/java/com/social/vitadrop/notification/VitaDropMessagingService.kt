@@ -1,41 +1,4 @@
 package com.social.vitadrop.notification
-/*
-import com.google.firebase.messaging.FirebaseMessagingService
-import com.social.vitadrop.data.repository.NotificationRepositoryImpl
-import com.social.vitadrop.domain.model.UserRole
-import com.social.vitadrop.domain.usecase.RegisterDeviceUseCase
-import com.social.vitadrop.utils.SessionManager
-import kotlinx.coroutines.runBlocking
-
-/**
- * Firebase can replace the push token at any time (reinstall, restored backup, long inactivity).
- * Without this service, the token saved at login becomes stale and notifications silently stop.
- *
- * ONLY ADD THIS CLASS IF YOUR PROJECT HAS NO CLASS THAT EXTENDS FirebaseMessagingService.
- * (Search the project for "FirebaseMessagingService".) If you already have one, copy the body
- * of onNewToken below into it instead.
- */
-class VitaDropMessagingService : FirebaseMessagingService() {
-
-    override fun onNewToken(token: String) {
-        super.onNewToken(token)
-
-        // Nobody is logged in on this device: there is no profile to update. The token is
-        // saved at the next login.
-        val role = UserRole.fromKey(SessionManager(applicationContext).getUserRole()) ?: return
-
-        // onNewToken already runs on a background thread, so blocking here is fine.
-        runBlocking {
-            RegisterDeviceUseCase(NotificationRepositoryImpl()).invoke(role, knownToken = token)
-        }
-    }
-
-    // Foreground display of pushes is handled together with NotificationHelper
-    // (send me that file for the final cleanup step).
-}
-
- */
-
 
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage

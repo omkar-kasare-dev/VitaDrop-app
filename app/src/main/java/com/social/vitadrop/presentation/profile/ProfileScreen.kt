@@ -65,6 +65,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.social.vitadrop.domain.model.UserProfile
 import com.social.vitadrop.domain.model.UserRole
+import com.social.vitadrop.presentation.components.VitaDropLoader
+import com.social.vitadrop.presentation.components.VitaDropLoaderStyle
 
 // Modern Real-World Design Palette (unchanged)
 private val AppBgColor = Color(0xFFF8FAFC)
@@ -167,10 +169,9 @@ private fun ProfileContent(
                         .padding(padding),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(
-                        color = PrimaryAccent,
-                        strokeWidth = 2.dp,
-                        modifier = Modifier.size(28.dp)
+                    VitaDropLoader(
+                        style = VitaDropLoaderStyle.Dialog,
+                        message = "Loading...."
                     )
                 }
             }

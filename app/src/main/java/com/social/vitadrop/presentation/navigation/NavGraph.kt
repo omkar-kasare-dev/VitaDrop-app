@@ -1,5 +1,6 @@
 package com.social.vitadrop.presentation.navigation
 
+
 import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -13,59 +14,49 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.google.firebase.firestore.FirebaseFirestore
-
 import com.social.vitadrop.data.remote.FirebaseAuthService
 import com.social.vitadrop.data.repository.AuthRepositoryImpl
 import com.social.vitadrop.data.repository.DashboardRepositoryImpl
 import com.social.vitadrop.data.repository.DonorRepositoryImpl
+import com.social.vitadrop.data.repository.NotificationRepositoryImpl
+import com.social.vitadrop.data.repository.ProfileRepositoryImpl
 import com.social.vitadrop.data.repository.RequestRepositoryImpl
 import com.social.vitadrop.data.repository.ResponseRepositoryImpl
+import com.social.vitadrop.domain.model.UserRole
+import com.social.vitadrop.domain.usecase.CreateRequestUseCase
+import com.social.vitadrop.domain.usecase.GetDashboardStatsUseCase
+import com.social.vitadrop.domain.usecase.GetDonorsUseCase
+import com.social.vitadrop.domain.usecase.GetOpenRequestsUseCase
+import com.social.vitadrop.domain.usecase.GetProfileUseCase
+import com.social.vitadrop.domain.usecase.GetRequestByIdUseCase
+import com.social.vitadrop.domain.usecase.HasAlreadyRespondedUseCase
 import com.social.vitadrop.domain.usecase.LoginUseCase
+import com.social.vitadrop.domain.usecase.LogoutUseCase
+import com.social.vitadrop.domain.usecase.ObserveEmergencyRequestsUseCase
+import com.social.vitadrop.domain.usecase.ObserveResponseCountUseCase
+import com.social.vitadrop.domain.usecase.RegisterDeviceUseCase
 import com.social.vitadrop.domain.usecase.RegisterUserUseCase
+import com.social.vitadrop.domain.usecase.RespondToRequestUseCase
 import com.social.vitadrop.presentation.auth.login.screen.LoginScreen
 import com.social.vitadrop.presentation.auth.login.viewmodel.LoginViewModel
 import com.social.vitadrop.presentation.auth.register.screen.RegisterScreen
 import com.social.vitadrop.presentation.auth.register.viewmodel.RegisterViewModel
-
-
-import com.social.vitadrop.presentation.screens.common.ChatScreen
-
-import com.social.vitadrop.presentation.splash.SplashScreen
-
-import com.social.vitadrop.domain.usecase.CreateRequestUseCase
-import com.social.vitadrop.presentation.request.screen.CreateRequestScreen
-
-import com.social.vitadrop.presentation.request.viewmodel.CreateRequestViewModel
-
-import com.social.vitadrop.utils.SessionManager
-
-import com.social.vitadrop.domain.usecase.GetDonorsUseCase
-import com.social.vitadrop.domain.usecase.GetRequestByIdUseCase
-import com.social.vitadrop.domain.usecase.HasAlreadyRespondedUseCase
-import com.social.vitadrop.domain.usecase.ObserveResponseCountUseCase
-import com.social.vitadrop.domain.usecase.RespondToRequestUseCase
-import com.social.vitadrop.presentation.donor.screen.DonorListScreen
-
-import com.social.vitadrop.presentation.donor.viewmodel.DonorListViewModel
-import com.social.vitadrop.presentation.emergency.viewmodel.EmergencyViewModel
-import com.social.vitadrop.presentation.request.screen.RequestDetailsScreen
-import com.social.vitadrop.presentation.request.viewmodel.RequestDetailsViewModel
-
-import com.social.vitadrop.domain.model.UserRole
-import com.social.vitadrop.domain.usecase.GetDashboardUseCase
-import com.social.vitadrop.domain.usecase.GetOpenRequestsUseCase
 import com.social.vitadrop.presentation.dashboard.screen.DonorDashboardScreen
 import com.social.vitadrop.presentation.dashboard.viewmodel.DonorDashboardViewModel
-import com.social.vitadrop.presentation.request.list.RequestListScreen
-import com.social.vitadrop.presentation.request.list.RequestListViewModel
-
-import com.social.vitadrop.data.repository.NotificationRepositoryImpl
-import com.social.vitadrop.data.repository.ProfileRepositoryImpl
-import com.social.vitadrop.domain.usecase.GetProfileUseCase
-import com.social.vitadrop.domain.usecase.LogoutUseCase
-import com.social.vitadrop.domain.usecase.RegisterDeviceUseCase
+import com.social.vitadrop.presentation.donor.screen.DonorListScreen
+import com.social.vitadrop.presentation.donor.viewmodel.DonorListViewModel
+import com.social.vitadrop.presentation.emergency.viewmodel.EmergencyViewModel
 import com.social.vitadrop.presentation.profile.ProfileScreen
 import com.social.vitadrop.presentation.profile.ProfileViewModel
+import com.social.vitadrop.presentation.request.list.RequestListScreen
+import com.social.vitadrop.presentation.request.list.RequestListViewModel
+import com.social.vitadrop.presentation.request.screen.CreateRequestScreen
+import com.social.vitadrop.presentation.request.screen.RequestDetailsScreen
+import com.social.vitadrop.presentation.request.viewmodel.CreateRequestViewModel
+import com.social.vitadrop.presentation.request.viewmodel.RequestDetailsViewModel
+import com.social.vitadrop.presentation.screens.common.ChatScreen
+import com.social.vitadrop.presentation.splash.SplashScreen
+import com.social.vitadrop.utils.SessionManager
 
 
 @Composable
@@ -75,16 +66,6 @@ fun NavGraph(modifier: Modifier = Modifier,
 
     val navController = rememberNavController()
     val context = LocalContext.current
-    val session = SessionManager(context)
-
-    //  ROLE BASED START DESTINATION
-    val startDestination = when (session.getUserRole()) {
-        "donor" -> "dashboard/donor"
-        "hospital" -> "dashboard/hospital"
-        "admin" -> "dashboard/admin"
-        "patient" -> "dashboard/patient"
-        else -> "login"
-    }
 
     NavHost(
         navController = navController,
@@ -149,37 +130,6 @@ fun NavGraph(modifier: Modifier = Modifier,
             )
         }
 
-/*
-        composable("dashboard/{role}") { backStackEntry ->
-
-            // Unknown roles (for example an old saved "admin" session) fall back to the donor view, as before
-            val role = UserRole.fromKey(backStackEntry.arguments?.getString("role").orEmpty())
-                ?: UserRole.DONOR
-
-            val dashboardViewModel: DonorDashboardViewModel = viewModel(
-                factory = viewModelFactory {
-                    initializer {
-                        DonorDashboardViewModel(GetDashboardUseCase(DashboardRepositoryImpl()))
-                    }
-                }
-            )
-
-            val emergencyViewModel = rememberEmergencyViewModel()
-
-            DonorDashboardScreen(
-                role = role,
-                viewModel = dashboardViewModel,
-                emergencyViewModel = emergencyViewModel,
-                onProfileClick = { navController.navigate("profile") },
-                onDonorsClick = { navController.navigate("donors_list") },
-                onEmergencyClick = { navController.navigate("request_list") },
-                onRequestBloodClick = { navController.navigate("requestBlood") },
-                onChatClick = { navController.navigate("chat_assistant") },
-                onViewContact = { requestId -> navController.navigate("request_details/$requestId") }
-            )
-        }
-
-        */
         composable("dashboard/{role}") { backStackEntry ->
 
             val sessionRole = remember {
@@ -206,7 +156,11 @@ fun NavGraph(modifier: Modifier = Modifier,
             val dashboardViewModel: DonorDashboardViewModel = viewModel(
                 factory = viewModelFactory {
                     initializer {
-                        DonorDashboardViewModel(GetDashboardUseCase(DashboardRepositoryImpl()))
+                        val repository = DashboardRepositoryImpl()
+                        DonorDashboardViewModel(
+                            getStats = GetDashboardStatsUseCase(repository),
+                            observeEmergencyRequests = ObserveEmergencyRequestsUseCase(repository)
+                        )
                     }
                 }
             )
@@ -283,21 +237,7 @@ fun NavGraph(modifier: Modifier = Modifier,
                 onRequestCreated = { navController.popBackStack() }
             )
         }
-/* Main Request list Route
-        composable("request_list") {
 
-            val donorDashboardViewModel = remember {
-                DonorDashboardViewModel(
-                    repository = DashboardRepositoryImpl()
-                )
-            }
-
-            RequestListScreen(navController = navController,
-                viewModel = donorDashboardViewModel
-            )
-        }
-
- */
         composable("request_list") {
 
             val requestListViewModel: RequestListViewModel = viewModel(
