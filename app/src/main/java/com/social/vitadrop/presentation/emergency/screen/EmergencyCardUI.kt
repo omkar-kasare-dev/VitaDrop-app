@@ -51,17 +51,21 @@ fun EmergencyCardUI(
 ) {
     val requestId = request.requestId
 
-    // The ViewModel checks the response status and starts the live count (only once per request)
-    LaunchedEffect(requestId) {
-        onIntent(EmergencyIntent.RequestShown(requestId))
+    // Dynamic Theme Color Mapping based on UserRole
+    val isHospital = role == UserRole.HOSPITAL
+
+    // Only a DONOR has a response to check. A hospital never responds, so it makes no read.
+    LaunchedEffect(requestId, isHospital) {
+        if (!isHospital) {
+            onIntent(EmergencyIntent.RequestShown(requestId))
+        }
     }
 
     val hasResponded = uiState.respondedRequests[requestId] ?: false
-    val responseCount = uiState.responseCounts[requestId] ?: 0
+    // The number comes from the request itself (maintained by the onResponseCreated function)
+    val responseCount = request.responseCount
     val isResponding = requestId in uiState.respondingRequestIds
 
-    // Dynamic Theme Color Mapping based on UserRole
-    val isHospital = role == UserRole.HOSPITAL
     val primaryAccent = if (isHospital) Color(0xFF0284C7) else Color(0xFFE11D48)
     val softAccentBg = if (isHospital) Color(0xFFE0F2FE) else Color(0xFFFFF1F2)
 
@@ -183,39 +187,9 @@ fun EmergencyCardUI(
             Spacer(modifier = Modifier.height(14.dp))
 
             // Actions
-            Button(
-                onClick = { onIntent(EmergencyIntent.Respond(requestId)) },
-                enabled = !hasResponded,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(38.dp),
-                shape = RoundedCornerShape(8.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = primaryAccent,
-                    disabledContainerColor = Color(0xFFF1F5F9),
-                    disabledContentColor = Color(0xFF94A3B8)
-                ),
-                contentPadding = PaddingValues(0.dp)
-            ) {
-                if (isResponding) {
-                    // Only the tapped card shows the spinner (the ViewModel ignores double taps)
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp),
-                        strokeWidth = 2.dp,
-                        color = Color.White
-                    )
-                } else {
-                    Text(
-                        text = if (hasResponded) "Already Responded" else "Respond Now",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-            }
+            if (isHospital) {
 
-            if (hasResponded) {
-                Spacer(modifier = Modifier.height(8.dp))
-
+                // A hospital never responds to a request: it opens the details instead
                 OutlinedButton(
                     onClick = { onViewContact(requestId) },
                     modifier = Modifier
@@ -226,11 +200,65 @@ fun EmergencyCardUI(
                     contentPadding = PaddingValues(0.dp)
                 ) {
                     Text(
-                        text = "View Contact Details",
+                        text = "View Details",
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium,
                         color = textDark
                     )
+                }
+
+            } else {
+
+                Button(
+                    onClick = { onIntent(EmergencyIntent.Respond(requestId)) },
+                    enabled = !hasResponded,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(38.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = primaryAccent,
+                        disabledContainerColor = Color(0xFFF1F5F9),
+                        disabledContentColor = Color(0xFF94A3B8)
+                    ),
+                    contentPadding = PaddingValues(0.dp)
+                ) {
+                    if (isResponding) {
+                        // Only the tapped card shows the spinner (the ViewModel ignores double taps)
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp,
+                            color = Color.White
+                        )
+                    } else {
+                        Text(
+                            // "I can donate" = the donor is willing. It is not a completed donation.
+                            text = if (hasResponded) "Responded" else "I can donate",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+
+                if (hasResponded) {
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    OutlinedButton(
+                        onClick = { onViewContact(requestId) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(38.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        border = BorderStroke(0.8.dp, borderLight),
+                        contentPadding = PaddingValues(0.dp)
+                    ) {
+                        Text(
+                            text = "View Contact Details",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = textDark
+                        )
+                    }
                 }
             }
         }

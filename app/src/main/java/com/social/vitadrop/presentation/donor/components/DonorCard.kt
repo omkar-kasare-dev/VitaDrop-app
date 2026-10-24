@@ -1,6 +1,5 @@
 package com.social.vitadrop.presentation.donor.components
 
-
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -18,7 +17,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bloodtype
-import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Verified
@@ -47,6 +45,11 @@ private val PrimaryAccent = Color(0xFFE11D48)     // Deep Crimson/Rose
 private val SoftBadgeBg = Color(0xFFFFF1F2)      // Light Rose tint
 private val LightAccentBg = Color(0xFFFFE4E6)
 
+/**
+ * STEP 1: hospitals see only what the donorDirectory contains
+ * (name, blood group, city, state, gender, availability).
+ * Phone, age and weight were removed: they are private donor data.
+ */
 @Composable
 fun DonorCard(
     donor: DonorModel
@@ -153,33 +156,9 @@ fun DonorCard(
 
             HorizontalDivider(color = BorderColor, thickness = 1.dp)
 
-            // GENDER / AGE / WEIGHT
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
+            // GENDER
+            Row(modifier = Modifier.fillMaxWidth()) {
                 InfoItem(title = "Gender", value = donor.gender)
-                InfoItem(title = "Age", value = donor.age.toString())
-                InfoItem(title = "Weight", value = "${donor.weight} Kg")
-            }
-
-            // PHONE
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.Call,
-                    contentDescription = null,
-                    tint = PrimaryAccent,
-                    modifier = Modifier.size(14.dp)
-                )
-
-                Spacer(modifier = Modifier.width(6.dp))
-
-                Text(
-                    text = donor.phone,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = TextPrimary
-                )
             }
 
             // AVAILABILITY / VERIFIED

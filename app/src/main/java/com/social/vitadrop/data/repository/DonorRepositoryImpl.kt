@@ -16,7 +16,9 @@ class DonorRepositoryImpl : DonorRepository {
     override suspend fun getAllDonors(): Result<List<DonorModel>> {
         return try {
             val snapshot = withTimeoutOrNull(TIMEOUT_MS) {
-                db.collection("donors").get().await()
+                // STEP 1: hospitals read the reduced donorDirectory (name, blood group, city,
+                // state, gender, availability). The full donors collection is private.
+                db.collection("donorDirectory").get().await()
             }
 
             if (snapshot == null) {
@@ -28,53 +30,24 @@ class DonorRepositoryImpl : DonorRepository {
             }
 
         } catch (e: Exception) {
-            // Before: the error was hidden and an empty list returned ("No donors found").
-            // Now the error travels up so the screen can show it with a Retry button.
+            // The error travels up so the screen can show it with a Retry button.
             Log.e("DONOR_REPO", "Failed to load donors", e)
             Result.failure(e)
         }
     }
 
-    private fun DocumentSnapshot.toDonorModel(): DonorModel {
-        val location = get("location") as? Map<*, *>
-
-        return DonorModel(
-            // BASIC INFO
-            uid = getString("uid") ?: id,
+    // The directory document id IS the donor's uid. Fields that are not in the directory
+    // (phone, age, weight, location, token...) keep the DonorModel defaults.
+    private fun DocumentSnapshot.toDonorModel(): DonorModel =
+        DonorModel(
+            uid = id,
             fullName = getString("fullName") ?: "",
-            email = getString("email") ?: "",
-            phone = getString("phone") ?: "",
-
-            // PERSONAL INFO
-            gender = getString("gender") ?: "",
-            age = getLong("age")?.toInt() ?: 0,
-
-            // BLOOD INFO
             bloodGroup = getString("bloodGroup") ?: "",
-
-            // ADDRESS INFO
             city = getString("city") ?: "",
             state = getString("state") ?: "",
-            address = getString("address") ?: "",
-
-            // LOCATION (was read before but never assigned)
-            latitude = (location?.get("latitude") as? Number)?.toDouble() ?: 0.0,
-            longitude = (location?.get("longitude") as? Number)?.toDouble() ?: 0.0,
-
-            // PROFILE
-            profileImage = getString("profileImage") ?: "",
-            weight = getDouble("weight") ?: 0.0,
-
-            // STATUS
-            isAvailable = getBoolean("isAvailable") ?: true,
-            isVerified = getBoolean("isVerified") ?: false,
-            isBlocked = getBoolean("isBlocked") ?: false,
-
-            // DEVICE INFO
-            devicePlatform = getString("devicePlatform") ?: "",
-            fcmToken = getString("fcmToken") ?: ""
+            gender = getString("gender") ?: "",
+            isAvailable = getBoolean("isAvailable") ?: true
         )
-    }
 
     private companion object {
         const val TIMEOUT_MS = 15_000L

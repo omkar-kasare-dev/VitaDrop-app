@@ -3,6 +3,7 @@ package com.social.vitadrop.data.repository
 import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.social.vitadrop.data.mapper.toRequestModel
 import com.social.vitadrop.domain.model.DonorResponse
 import com.social.vitadrop.domain.model.RequestModel
 import com.social.vitadrop.domain.repository.ResponseRepository
@@ -95,8 +96,9 @@ class ResponseRepositoryImpl(
 
     /**
      * Real-time response count.
-     * Before: a listener error was ignored and a wrong count of 0 was sent.
-     * Now: the error closes the flow, and the ViewModel decides what to do.
+     * STEP 1 NOTE: only the hospital that owns the request may read the whole responses
+     * collection (Firestore rules). Donor screens use request.responseCount instead.
+     * Kept so the interface does not change.
      */
     override fun observeResponseCount(requestId: String): Flow<Int> = callbackFlow {
 
@@ -123,12 +125,11 @@ class ResponseRepositoryImpl(
                 firestore.collection("requests").document(requestId).get().await()
             } ?: return Result.failure(IOException(NETWORK_MESSAGE))
 
-            val request = document.toObject(RequestModel::class.java)
-
-            if (request == null) {
+            if (!document.exists()) {
                 Result.failure(Exception("Request not found."))
             } else {
-                Result.success(request)
+                // same mapper as the dashboard, so every screen reads a request the same way
+                Result.success(document.toRequestModel())
             }
 
         } catch (e: Exception) {

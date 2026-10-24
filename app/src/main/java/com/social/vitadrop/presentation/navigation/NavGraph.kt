@@ -168,14 +168,24 @@ fun NavGraph(modifier: Modifier = Modifier,
             val emergencyViewModel = rememberEmergencyViewModel()
 
             // A notification was tapped: hospitals jump to the request. Donors stay on the dashboard,
-// where the Respond button is (request details show contact data, which a donor should
-// only see after responding).
+            // where the Respond button is (request details show contact data, which a donor should
+            // only see after responding).
             LaunchedEffect(pendingRequestId, role) {
                 val requestId = pendingRequestId ?: return@LaunchedEffect
                 if (role == UserRole.HOSPITAL) {
                     navController.navigate("request_details/$requestId")
+
                 }
+
                 onPendingRequestHandled()
+            }
+            // Save/refresh this phone's push token every time the dashboard opens. Login alone is not enough:
+            // a user who is already logged in (restored session) would never get a token saved.
+            LaunchedEffect(role) {
+                RegisterDeviceUseCase(NotificationRepositoryImpl())
+                    .invoke(role, knownToken = null)
+                    .onSuccess { Log.d("DEVICE_REG", "Push token saved for $role") }
+                    .onFailure { Log.e("DEVICE_REG", "Push token NOT saved: ${it.message}", it) }
             }
 
 
@@ -317,7 +327,7 @@ private fun rememberEmergencyViewModel(): EmergencyViewModel =
                 EmergencyViewModel(
                     respondToRequest = RespondToRequestUseCase(repository),
                     hasAlreadyResponded = HasAlreadyRespondedUseCase(repository),
-                    observeResponseCount = ObserveResponseCountUseCase(repository)
+                    observeResponseCount= ObserveResponseCountUseCase(repository)
                 )
             }
         }

@@ -1,6 +1,5 @@
 package com.social.vitadrop.domain.usecase
 
-
 import com.social.vitadrop.domain.model.NewRequest
 import com.social.vitadrop.domain.repository.RequestRepository
 
@@ -24,7 +23,10 @@ class CreateRequestUseCase(
             cleaned.patientName.isBlank() -> "Patient name is required"
             cleaned.bloodGroup !in VALID_BLOOD_GROUPS ->
                 "Enter a valid blood group (A+, A-, B+, B-, AB+, AB-, O+, O-)"
-            cleaned.unitsRequired < 1 -> "Units required must be at least 1"
+            // The Firestore rules accept 1..20 units, so show a readable message here
+            // instead of a "permission denied" error from the server.
+            cleaned.unitsRequired !in 1..MAX_UNITS ->
+                "Units required must be between 1 and $MAX_UNITS"
             cleaned.contactPhone.isBlank() -> "Contact number is required"
             // (0, 0) means GPS was not available. The alert server finds donors by distance,
             // so a request without a location would reach nobody.
@@ -39,6 +41,7 @@ class CreateRequestUseCase(
     }
 
     private companion object {
+        const val MAX_UNITS = 20
         val VALID_BLOOD_GROUPS = setOf("A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-")
     }
 }

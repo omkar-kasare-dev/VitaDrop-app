@@ -47,6 +47,10 @@ data class RequestModel(
 
     // DONOR TRACKING
     val acceptedDonors: List<String> = emptyList(),
+
+    // number of donors who tapped "I can donate" (written by a Cloud Function)
+    val responseCount: Long = 0,
+
     // NOTIFICATION TRACKING
     val notificationRadius: Int = 5,
 
@@ -66,6 +70,6 @@ data class RequestModel(
     val emergency: Boolean = false,
 
     // TIMESTAMP
-   // val createdAt: Long? = null
+    // val createdAt: Long? = null
     val createdAt: Timestamp? = null
 )

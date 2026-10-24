@@ -13,7 +13,6 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -21,6 +20,10 @@ import kotlinx.coroutines.launch
 class EmergencyViewModel(
     private val respondToRequest: RespondToRequestUseCase,
     private val hasAlreadyResponded: HasAlreadyRespondedUseCase,
+    // STEP 1: no longer used. The response count now comes from request.responseCount
+    // (maintained by a Cloud Function), because only the owning hospital may list the responses.
+    // Kept so the NavGraph code that creates this ViewModel does not need to change.
+    @Suppress("unused")
     private val observeResponseCount: ObserveResponseCountUseCase
 ) : ViewModel() {
 
@@ -30,10 +33,6 @@ class EmergencyViewModel(
     private val _effect = Channel<EmergencyEffect>(Channel.BUFFERED)
     val effect = _effect.receiveAsFlow()
 
-    // Requests whose live count is already being observed.
-    // Without this, every re-composition / rotation would add one more Firestore listener.
-    private val observedRequestIds = mutableSetOf<String>()
-
     fun onIntent(intent: EmergencyIntent) {
         when (intent) {
             is EmergencyIntent.Respond -> respond(intent.requestId)
@@ -42,42 +41,26 @@ class EmergencyViewModel(
     }
 
     // ---------------------------------------------------------------
-    // A card became visible: load its status and start its live count
+    // A card became visible: has the current donor already responded?
+    // (retried the next time the card is shown, until it succeeds once)
     // ---------------------------------------------------------------
     private fun onRequestShown(requestId: String) {
 
-        // 1) has the current donor already responded? (retried until it succeeds once)
-        if (requestId !in _state.value.respondedRequests) {
-            viewModelScope.launch {
-                hasAlreadyResponded(requestId)
-                    .onSuccess { responded ->
-                        _state.update {
-                            it.copy(respondedRequests = it.respondedRequests + (requestId to responded))
-                        }
-                    }
-                    .onFailure { Log.e(TAG, "Could not check response status", it) }
-            }
-        }
+        if (requestId in _state.value.respondedRequests) return
 
-        // 2) live number of responses (started only once per request)
-        if (observedRequestIds.add(requestId)) {
-            viewModelScope.launch {
-                observeResponseCount(requestId)
-                    .catch { e ->
-                        Log.e(TAG, "Response count listener failed", e)
-                        observedRequestIds.remove(requestId)   // allow a retry next time the card is shown
+        viewModelScope.launch {
+            hasAlreadyResponded(requestId)
+                .onSuccess { responded ->
+                    _state.update {
+                        it.copy(respondedRequests = it.respondedRequests + (requestId to responded))
                     }
-                    .collect { count ->
-                        _state.update {
-                            it.copy(responseCounts = it.responseCounts + (requestId to count))
-                        }
-                    }
-            }
+                }
+                .onFailure { Log.e(TAG, "Could not check response status", it) }
         }
     }
 
     // ---------------------------------------------------------------
-    // The donor tapped "Respond"
+    // The donor tapped "I can donate"
     // ---------------------------------------------------------------
     private fun respond(requestId: String) {
         if (requestId in _state.value.respondingRequestIds) return   // ignore double taps

@@ -1,28 +1,183 @@
 rules_version = '2';
 
 service cloud.firestore {
-
   match /databases/{database}/documents {
 
-    match /users/{userId} {
-      allow read, write: if request.auth != null;
+    // ---------------- helpers ----------------
+    function signedIn() { return request.auth != null; }
+
+    function isDonor() {
+      return signedIn() && exists(/databases/$(database)/documents/donors/$(request.auth.uid));
+    }
+    function isHospital() {
+      return signedIn() && exists(/databases/$(database)/documents/hospitals/$(request.auth.uid));
+    }
+    function activeDonor() {
+      return isDonor()
+        && get(/databases/$(database)/documents/donors/$(request.auth.uid)).data.isBlocked != true;
+    }
+    // isVerified is set ONLY by an admin (console / Admin SDK). Clients can never change it.
+    function verifiedHospital() {
+      return isHospital()
+        && get(/databases/$(database)/documents/hospitals/$(request.auth.uid)).data.isVerified == true
+        && get(/databases/$(database)/documents/hospitals/$(request.auth.uid)).data.isBlocked != true;
+    }
+    function requestOwner(requestId) {
+      return signedIn()
+        && get(/databases/$(database)/documents/requests/$(requestId)).data.hospitalId == request.auth.uid;
     }
 
+    function newKeysOnly(keys) { return request.resource.data.keys().hasOnly(keys); }
+    function changedOnly(keys) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys);
+    }
+    function isBloodGroup(g) {
+      return g in ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+    }
+    function isRealLocation(l) {
+      return l is map
+        && l.keys().hasOnly(['latitude', 'longitude'])
+        && l.latitude is number && l.longitude is number
+        && !(l.latitude == 0 && l.longitude == 0);
+    }
+
+    // ---------------- donors (private: owner only) ----------------
     match /donors/{userId} {
-      allow read, write: if request.auth != null;
+      allow get: if signedIn() && request.auth.uid == userId;
+      allow list: if false;
+
+      allow create: if signedIn() && request.auth.uid == userId
+        && !isHospital()
+        && newKeysOnly([
+          'uid', 'fullName', 'email', 'phone', 'gender', 'age', 'bloodGroup',
+          'city', 'state', 'address', 'location', 'profileImage', 'weight',
+          'lastDonationDate', 'isAvailable', 'isVerified', 'isBlocked',
+          'devicePlatform', 'createdAt', 'updatedAt', 'lastActive'
+        ])
+        && request.resource.data.uid == userId
+        && request.resource.data.isVerified == false
+        && request.resource.data.isBlocked == false
+        && isBloodGroup(request.resource.data.bloodGroup)
+        && isRealLocation(request.resource.data.location);
+
+      // No isVerified, isBlocked, bloodGroup, lastDonationDate, email here.
+      allow update: if signedIn() && request.auth.uid == userId
+        && changedOnly([
+          'isAvailable', 'phone', 'city', 'state', 'address', 'location',
+          'weight', 'fullName', 'profileImage', 'lastActive', 'updatedAt'
+        ]);
+
+      allow delete: if false;
     }
 
+    // ---------------- hospitals (private: owner only) ----------------
     match /hospitals/{userId} {
-      allow read, write: if request.auth != null;
+      allow get: if signedIn() && request.auth.uid == userId;
+      allow list: if false;
+
+      allow create: if signedIn() && request.auth.uid == userId
+        && !isDonor()
+        && newKeysOnly([
+          'uid', 'hospitalName', 'email', 'phone', 'licenseNumber', 'city', 'state',
+          'address', 'location', 'profileImage', 'isVerified', 'isBlocked',
+          'createdAt', 'updatedAt'
+        ])
+        && request.resource.data.uid == userId
+        && request.resource.data.isVerified == false
+        && request.resource.data.isBlocked == false
+        && request.resource.data.location is map;
+
+      allow update: if signedIn() && request.auth.uid == userId
+        && changedOnly(['phone', 'city', 'state', 'address', 'location', 'profileImage', 'updatedAt']);
+
+      allow delete: if false;
     }
 
+    // ---------------- push tokens: written by the owner, read ONLY by Cloud Functions ----------------
+    match /devices/{userId} {
+      allow read: if false;
+      allow create, update: if (isDonor() || isHospital())
+        && request.auth.uid == userId
+        && newKeysOnly(['token', 'platform', 'updatedAt'])
+        && request.resource.data.token is string
+        && request.resource.data.token.size() > 20
+        && request.resource.data.token.size() < 4096;
+      allow delete: if signedIn() && request.auth.uid == userId;
+    }
+
+    // ---------------- reduced donor view for verified hospitals (written by a function) ----------------
+    match /donorDirectory/{userId} {
+      allow read: if verifiedHospital();
+      allow write: if false;
+    }
+
+    // ---------------- dashboard numbers (written by a function) ----------------
+    match /stats/{docId} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    // ---------------- requests ----------------
     match /requests/{requestId} {
 
-      allow read, write: if request.auth != null;
+      // TEMPORARY: patient/contact fields are still in this document until Step 6 (private subdocument).
+      allow read: if signedIn();
+
+      allow create: if verifiedHospital()
+        && newKeysOnly([
+          'requestId', 'requestedBy', 'hospitalId', 'patientName', 'bloodGroup', 'unitsRequired',
+          'contactPerson', 'contactPhone', 'hospitalName', 'city', 'location', 'urgency', 'status',
+          'description', 'acceptedDonors', 'rejectedDonors', 'completedBy', 'notificationRadius',
+          'acceptedBy', 'notifiedDonors', 'notificationStartedAt', 'emergency', 'createdBy', 'createdAt'
+        ])
+        && request.resource.data.requestId == requestId
+        && request.resource.data.hospitalId == request.auth.uid
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.requestedBy == 'hospital'
+        && request.resource.data.hospitalName ==
+             get(/databases/$(database)/documents/hospitals/$(request.auth.uid)).data.hospitalName
+        // system fields must start in their initial state: a client cannot pre-fill them
+        && request.resource.data.status == 'pending'
+        && request.resource.data.get('acceptedBy', '') == ''
+        && request.resource.data.get('acceptedDonors', []).size() == 0
+        && request.resource.data.get('rejectedDonors', []).size() == 0
+        && request.resource.data.get('completedBy', []).size() == 0
+        && request.resource.data.get('notifiedDonors', []).size() == 0
+        && request.resource.data.get('notificationRadius', 5) == 5
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.get('notificationStartedAt', request.time) == request.time
+        // content checks
+        && isBloodGroup(request.resource.data.bloodGroup)
+        && request.resource.data.unitsRequired is int
+        && request.resource.data.unitsRequired >= 1
+        && request.resource.data.unitsRequired <= 20
+        && request.resource.data.urgency is string
+        && request.resource.data.urgency.size() > 0
+        && request.resource.data.urgency.size() <= 20
+        && request.resource.data.emergency is bool
+        && isRealLocation(request.resource.data.location)
+        && request.resource.data.patientName is string
+        && request.resource.data.patientName.size() > 0
+        && request.resource.data.patientName.size() <= 100
+        && request.resource.data.get('description', '').size() <= 500;
+
+      // Status changes, counters and notification fields are written by Cloud Functions only.
+      allow update, delete: if false;
 
       match /responses/{donorId} {
+        allow get: if signedIn() && (request.auth.uid == donorId || requestOwner(requestId));
+        allow list: if requestOwner(requestId);
 
-        allow read, write: if request.auth != null;
+        allow create: if signedIn() && request.auth.uid == donorId
+          && activeDonor()
+          && get(/databases/$(database)/documents/requests/$(requestId)).data.status in ['pending', 'accepted']
+          && newKeysOnly(['donorId', 'requestId', 'status', 'responseTime'])
+          && request.resource.data.donorId == donorId
+          && request.resource.data.requestId == requestId
+          && request.resource.data.status == 'accepted'
+          && request.resource.data.responseTime is int;
+
+        allow update, delete: if false;
       }
     }
   }

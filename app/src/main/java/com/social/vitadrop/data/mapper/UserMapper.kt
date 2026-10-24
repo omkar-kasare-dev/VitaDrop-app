@@ -11,6 +11,8 @@ val UserRole.collectionName: String
         UserRole.HOSPITAL -> "hospitals"
     }
 
+// STEP 1: "fcmToken" is no longer part of the profile. It is saved in devices/{uid}
+// (see NotificationRepositoryImpl). The Firestore rules reject unknown fields.
 fun User.toFirestoreMap(uid: String): Map<String, Any?> {
     val now = Timestamp.now()
     return when (role) {
@@ -33,7 +35,6 @@ fun User.toFirestoreMap(uid: String): Map<String, Any?> {
             "isVerified" to false,
             "isBlocked" to false,
             "devicePlatform" to "android",
-            "fcmToken" to fcmToken,
             "createdAt" to now,
             "updatedAt" to now,
             "lastActive" to now
@@ -52,7 +53,6 @@ fun User.toFirestoreMap(uid: String): Map<String, Any?> {
             "profileImage" to profileImage,
             "isVerified" to false,
             "isBlocked" to false,
-            "fcmToken" to fcmToken,
             "createdAt" to now,
             "updatedAt" to now
         )

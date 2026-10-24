@@ -1,10 +1,6 @@
 const admin = require("firebase-admin");
 
 const {
-    FieldValue
-} = require("firebase-admin/firestore");
-
-const {
     COMPATIBILITY,
     normalizeBloodGroup
 } = require("../utils/bloodCompatibility");
@@ -13,6 +9,12 @@ const {
     isValidLocation,
     distanceKm
 } = require("./geoService");
+
+// STEP 1: push tokens live in devices/{uid} (private), not in donors/hospitals documents
+const {
+    getTokens,
+    removeTokens
+} = require("./deviceService");
 
 const {
     NOTIFICATION_CHANNEL_ID,
@@ -73,6 +75,7 @@ async function notifyNearbyDonors(
         skippedBlocked: 0,
         skippedAlreadyNotified: 0,
         skippedNoToken: 0,
+        noTokenDonorIds: [],   // who has no devices/{uid} token: log in again on that phone
         skippedDonatedRecently: 0,
         skippedNoLocation: 0,
         skippedTooFar: 0,
@@ -139,7 +142,8 @@ async function notifyNearbyDonors(
     const alreadyNotified = new Set(requestData.notifiedDonors || []);
 
     // ---------------- 4. ELIGIBLE + NEARBY ----------------
-    const candidates = [];
+    // "let": the list is filtered again below, once the push tokens are known
+    let candidates = [];
 
     for (const doc of donorsSnapshot.docs) {
 
@@ -152,11 +156,6 @@ async function notifyNearbyDonors(
 
         if (alreadyNotified.has(doc.id)) {
             summary.skippedAlreadyNotified++;
-            continue;
-        }
-
-        if (!donor.fcmToken) {
-            summary.skippedNoToken++;
             continue;
         }
 
@@ -194,10 +193,25 @@ async function notifyNearbyDonors(
 
         candidates.push({
             id: doc.id,
-            token: donor.fcmToken,
             distance: distance === null ? Number.MAX_SAFE_INTEGER : distance
         });
     }
+
+    // STEP 1: tokens come from devices/{uid}. A donor without a token cannot be alerted.
+    const tokens = await getTokens(candidates.map((c) => c.id));
+
+    candidates = candidates.filter((c) => {
+
+        c.token = tokens.get(c.id);
+
+        if (!c.token) {
+            summary.skippedNoToken++;
+            summary.noTokenDonorIds.push(c.id);
+            return false;
+        }
+
+        return true;
+    });
 
     // Nearest donors first: they can reach the hospital sooner
     candidates.sort((a, b) => a.distance - b.distance);
@@ -260,23 +274,19 @@ async function notifyNearbyDonors(
                 if (INVALID_TOKEN_CODES.has(code)) {
                     deadTokenDonorIds.push(candidate.id);
                 } else {
-                    console.error("FCM error for donor", candidate.id, code);
+                    console.error(
+                        "FCM error for donor",
+                        candidate.id,
+                        code,
+                        result.error && result.error.message
+                    );
                 }
             });
 
             // Remove dead tokens so they are not tried again at the next radius
             if (deadTokenDonorIds.length > 0) {
 
-                const batch = db.batch();
-
-                deadTokenDonorIds.forEach((donorId) => {
-                    batch.update(
-                        db.collection("donors").doc(donorId),
-                        { fcmToken: FieldValue.delete() }
-                    );
-                });
-
-                await batch.commit();
+                await removeTokens(deadTokenDonorIds);
 
                 summary.removedDeadTokens += deadTokenDonorIds.length;
             }
@@ -296,7 +306,7 @@ async function notifyNearbyDonors(
 
 /**
  * Tells the hospital that a donor accepted (flow picture: "Donor Confirmation" -> Hospital).
- * Uses the hospital's own push token (hospitals/{uid}.fcmToken, saved at login).
+ * Uses the hospital's own push token (devices/{uid}.token, saved at login).
  */
 async function notifyHospitalOfResponse(
     request,
@@ -314,15 +324,15 @@ async function notifyHospitalOfResponse(
         return;
     }
 
-    const [hospitalDoc, donorDoc] = await Promise.all([
-        db.collection("hospitals").doc(hospitalId).get(),
+    const [tokens, donorDoc] = await Promise.all([
+        getTokens([hospitalId]),
         db.collection("donors").doc(donorId).get()
     ]);
 
-    const token = hospitalDoc.get("fcmToken");
+    const token = tokens.get(hospitalId);
 
     if (!token) {
-        console.log("Hospital has no fcmToken, not notified:", hospitalId);
+        console.log("Hospital has no device token (devices/" + hospitalId + "), not notified");
         return;
     }
 
@@ -358,7 +368,7 @@ async function notifyHospitalOfResponse(
     } catch (e) {
 
         if (INVALID_TOKEN_CODES.has(e.code)) {
-            await hospitalDoc.ref.update({ fcmToken: FieldValue.delete() });
+            await removeTokens([hospitalId]);
         } else {
             console.error("Could not notify hospital:", e);
         }

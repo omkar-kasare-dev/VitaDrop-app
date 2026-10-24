@@ -1,29 +1,3 @@
-/*
-const {setGlobalOptions} = require("firebase-functions");
-const {onRequest} = require("firebase-functions/https");
-const logger = require("firebase-functions/logger");
-
-
-const admin = require("firebase-admin");
-
-admin.initializeApp();
-
-const {
-    onRequestCreated
-} = require("./triggers/requestTrigger");
-
-const {
-    radiusExpansionScheduler
-} = require("./schedulers/radiusExpansionScheduler");
-
-exports.onRequestCreated =
-    onRequestCreated;
-
-exports.radiusExpansionScheduler =
-    radiusExpansionScheduler;
-    */
-
-
 const admin = require("firebase-admin");
 
 // Must run before the modules below are used
@@ -41,11 +15,17 @@ const {
     radiusExpansionScheduler
 } = require("./schedulers/radiusExpansionScheduler");
 
+const {
+    syncDonorDirectory,
+    syncHospitalStats,
+    syncRequestStats
+} = require("./triggers/directoryTriggers");
+
 // 1) hospital creates a request   -> first alert (5 km)
 exports.onRequestCreated =
     onRequestCreated;
 
-// 2) donor taps "Respond Now"      -> counters, status, push to the hospital   (NEW)
+// 2) donor taps "Respond Now"      -> counters, status, push to the hospital
 exports.onResponseCreated =
     onResponseCreated;
 
@@ -53,3 +33,7 @@ exports.onResponseCreated =
 exports.radiusExpansionScheduler =
     radiusExpansionScheduler;
 
+// 4) STEP 1: reduced donor view for hospitals + dashboard numbers
+exports.syncDonorDirectory = syncDonorDirectory;
+exports.syncHospitalStats = syncHospitalStats;
+exports.syncRequestStats = syncRequestStats;

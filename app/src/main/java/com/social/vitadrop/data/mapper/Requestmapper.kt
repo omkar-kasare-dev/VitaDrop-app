@@ -1,7 +1,5 @@
 package com.social.vitadrop.data.mapper
 
-
-
 import com.google.firebase.firestore.DocumentSnapshot
 import com.social.vitadrop.domain.model.RequestModel
 
@@ -9,6 +7,7 @@ import com.social.vitadrop.domain.model.RequestModel
  * Safe Firestore document -> RequestModel conversion.
  * - never throws on wrong field types (location, units, lists)
  * - same field names as the document written by RequestRepositoryImpl
+ * - used by EVERY screen (dashboard, list and details), so they always agree
  */
 internal fun DocumentSnapshot.toRequestModel(): RequestModel {
 
@@ -57,6 +56,9 @@ internal fun DocumentSnapshot.toRequestModel(): RequestModel {
         acceptedDonors = stringList("acceptedDonors"),
         rejectedDonors = stringList("rejectedDonors"),
         completedBy = stringList("completedBy"),
+
+        // maintained by the onResponseCreated Cloud Function
+        responseCount = getLong("responseCount") ?: 0L,
 
         // NOTIFICATION TRACKING
         notificationRadius = getLong("notificationRadius")?.toInt() ?: 5,
