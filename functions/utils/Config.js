@@ -16,5 +16,25 @@ module.exports = {
     MIN_DAYS_BETWEEN_DONATIONS: 90,
 
     // If a phone is offline, an old emergency push is useless after this time.
-    FCM_TTL_MS: 15 * 60 * 1000
+    FCM_TTL_MS: 15 * 60 * 1000,
+
+    // ---------------- STEP 2 ----------------
+
+    // A request that is still open after this long is closed with status "expired".
+    REQUEST_EXPIRY_MINUTES: 24 * 60,
+
+    // One alert step "owns" a request for this long. If the function crashes, another one
+    // may retry after the lease. This is also what stops two runs alerting the same step twice.
+    CLAIM_LEASE_SECONDS: 120,
+
+    // After this many failed attempts at the same step the request is parked with an alertError.
+    MAX_ALERT_ATTEMPTS: 5,
+
+    // A request that was never alerted (the creation function did not run) is picked up by the
+    // scheduler when it is older than RESCUE_AFTER_MINUTES, for up to RESCUE_WINDOW_MINUTES.
+    RESCUE_AFTER_MINUTES: 2,
+    RESCUE_WINDOW_MINUTES: 60,
+
+    // Most requests handled per query in one scheduler run.
+    SCHEDULER_BATCH_SIZE: 25
 };

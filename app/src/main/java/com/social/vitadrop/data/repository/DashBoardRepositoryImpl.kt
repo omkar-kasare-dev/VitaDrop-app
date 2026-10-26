@@ -1,7 +1,6 @@
 package com.social.vitadrop.data.repository
 
 import android.util.Log
-import com.google.firebase.firestore.AggregateSource
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
@@ -19,23 +18,25 @@ class DashboardRepositoryImpl : DashboardRepository {
     private val db = FirebaseFirestore.getInstance()
 
     // ------------------------------------------------------------------
-    // COUNTS (Firestore counts on the server and sends back one number)
-    // needs firebase-firestore 24.4.0+, and a live server connection
+    // COUNTS: STEP 1. The numbers are read from ONE small document, stats/global,
+    // kept up to date by Cloud Functions. Before, the app counted the donors and hospitals
+    // collections itself, which needed permission to list every donor and hospital.
     // ------------------------------------------------------------------
-    override suspend fun getDonorCount(): Result<Int> = count("donors")
+    override suspend fun getDonorCount(): Result<Int> = statCount("donorsCount")
 
-    override suspend fun getHospitalCount(): Result<Int> = count("hospitals")
+    override suspend fun getHospitalCount(): Result<Int> = statCount("hospitalsCount")
 
-    override suspend fun getRequestCount(): Result<Int> = count("requests")
+    override suspend fun getRequestCount(): Result<Int> = statCount("requestsCount")
 
-    private suspend fun count(collection: String): Result<Int> =
-        firestoreCall(TAG, "count($collection)") {
-            db.collection(collection)
-                .count()
-                .get(AggregateSource.SERVER)
+    private suspend fun statCount(field: String): Result<Int> =
+        firestoreCall(TAG, "stats/global.$field") {
+            db.collection("stats")
+                .document("global")
+                .get()
                 .await()
-                .count
-                .toInt()
+                .getLong(field)
+                ?.toInt()
+                ?: 0
         }
 
     // ------------------------------------------------------------------

@@ -35,57 +35,37 @@ class RequestRepositoryImpl : RequestRepository {
                 return Result.failure(Exception("This account has been blocked. Please contact support."))
             }
 
+            // New
+            if (hospital.getBoolean("isVerified") != true) {
+                return Result.failure(Exception("Your hospital account is awaiting verification."))
+            }
+            //--------------
+
             val hospitalName = hospital.getString("hospitalName").orEmpty()
 
             // 2. BUILD THE DOCUMENT (same field names as before, so other screens keep working)
             val ref = db.collection("requests").document()
 
             val data = hashMapOf<String, Any?>(
-                // REQUEST INFO
                 "requestId" to ref.id,
                 "requestedBy" to "hospital",
                 "hospitalId" to uid,
-
-                // PATIENT / BLOOD INFO
+                "createdBy" to uid,
+                "hospitalName" to hospitalName,
                 "patientName" to request.patientName,
                 "bloodGroup" to request.bloodGroup,
                 "unitsRequired" to request.unitsRequired.toLong(),
-
-                // CONTACT INFO
                 "contactPerson" to request.contactPerson,
                 "contactPhone" to request.contactPhone,
-
-                // HOSPITAL INFO
-                "hospitalName" to hospitalName,
                 "city" to request.city,
-
-                // LOCATION
                 "location" to mapOf(
                     "latitude" to request.latitude,
                     "longitude" to request.longitude
                 ),
-
-                // REQUEST DETAILS
                 "urgency" to request.urgency.key,
                 "status" to "pending",
                 "description" to request.description,
-
-                // DONOR TRACKING
-                "acceptedDonors" to emptyList<String>(),
-                "rejectedDonors" to emptyList<String>(),
-                "completedBy" to emptyList<String>(),
-
-                // NOTIFICATION TRACKING
-                "notificationRadius" to 5,
-                "acceptedBy" to "",
-                "notifiedDonors" to emptyList<String>(),
-                "notificationStartedAt" to FieldValue.serverTimestamp(),
-
-                // EMERGENCY
                 "emergency" to request.isEmergency,
-
-                // SYSTEM
-                "createdBy" to uid,
                 "createdAt" to FieldValue.serverTimestamp()
             )
 

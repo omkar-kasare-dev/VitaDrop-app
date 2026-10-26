@@ -31,10 +31,6 @@ const INVALID_TOKEN_CODES = new Set([
     "messaging/invalid-registration-token"
 ]);
 
-function normalizeText(value) {
-    return String(value || "").trim().toLowerCase();
-}
-
 function donatedRecently(donor) {
 
     const last = donor.lastDonationDate;
@@ -79,7 +75,6 @@ async function notifyNearbyDonors(
         skippedDonatedRecently: 0,
         skippedNoLocation: 0,
         skippedTooFar: 0,
-        matchedByCityOnly: 0,
         sent: 0,
         failed: 0,
         removedDeadTokens: 0
@@ -102,16 +97,15 @@ async function notifyNearbyDonors(
     summary.compatibleGroups = compatibleGroups;
 
     // ---------------- 2. WHERE IS THE PATIENT? ----------------
+    // STEP 2: no more "same city" fallback. It ignored the radius, so a donor 40 km away
+    // was alerted at the 5 km step. Registration and the request form both require real GPS.
     const requestLat = requestData.location?.latitude;
     const requestLng = requestData.location?.longitude;
 
-    const requestHasLocation = isValidLocation(requestLat, requestLng);
-    const requestCity = normalizeText(requestData.city);
-
-    if (!requestHasLocation && !requestCity) {
+    if (!isValidLocation(requestLat, requestLng)) {
 
         console.warn(
-            "Request has neither a valid location nor a city, nobody notified:",
+            "Request has no valid location, nobody notified:",
             JSON.stringify(summary)
         );
 
@@ -167,33 +161,22 @@ async function notifyNearbyDonors(
         const donorLat = donor.location?.latitude;
         const donorLng = donor.location?.longitude;
 
-        let distance = null;
-
-        if (requestHasLocation && isValidLocation(donorLat, donorLng)) {
-
-            // Normal case: Haversine distance
-            distance = distanceKm(requestLat, requestLng, donorLat, donorLng);
-
-            if (distance > radiusKm) {
-                summary.skippedTooFar++;
-                continue;
-            }
-
-        } else if (requestCity && normalizeText(donor.city) === requestCity) {
-
-            // Safety net: GPS was missing on the request or on the donor,
-            // but both are in the same city, so the donor is still alerted.
-            summary.matchedByCityOnly++;
-
-        } else {
-
+        if (!isValidLocation(donorLat, donorLng)) {
             summary.skippedNoLocation++;
+            continue;
+        }
+
+        // Haversine distance
+        const distance = distanceKm(requestLat, requestLng, donorLat, donorLng);
+
+        if (distance > radiusKm) {
+            summary.skippedTooFar++;
             continue;
         }
 
         candidates.push({
             id: doc.id,
-            distance: distance === null ? Number.MAX_SAFE_INTEGER : distance
+            distance
         });
     }
 
@@ -307,6 +290,9 @@ async function notifyNearbyDonors(
 /**
  * Tells the hospital that a donor accepted (flow picture: "Donor Confirmation" -> Hospital).
  * Uses the hospital's own push token (devices/{uid}.token, saved at login).
+ *
+ * Returns true only when the push was really sent, so the caller can remember it.
+ * Never throws.
  */
 async function notifyHospitalOfResponse(
     request,
@@ -321,7 +307,7 @@ async function notifyHospitalOfResponse(
 
     if (!hospitalId) {
         console.log("Request has no hospitalId, hospital not notified:", request.requestId);
-        return;
+        return false;
     }
 
     const [tokens, donorDoc] = await Promise.all([
@@ -333,7 +319,7 @@ async function notifyHospitalOfResponse(
 
     if (!token) {
         console.log("Hospital has no device token (devices/" + hospitalId + "), not notified");
-        return;
+        return false;
     }
 
     const donorName = donorDoc.get("fullName") || "A donor";
@@ -346,8 +332,11 @@ async function notifyHospitalOfResponse(
             token,
 
             notification: {
-                title: `Donor responded (${responseCount}/${unitsNeeded})`,
-                body: `${donorName} can donate ${request.bloodGroup} for ${patient}`
+                // A response is a donor who is willing, not a unit of blood (one donor is not one
+                // unit), so the title counts donors and does not compare them with the units.
+                title: `${responseCount} donor${responseCount === 1 ? "" : "s"} responded`,
+                body: `${donorName} can donate ${request.bloodGroup} for ${patient}. ` +
+                      `You asked for ${unitsNeeded} unit(s).`
             },
 
             data: {
@@ -365,6 +354,8 @@ async function notifyHospitalOfResponse(
             }
         });
 
+        return true;
+
     } catch (e) {
 
         if (INVALID_TOKEN_CODES.has(e.code)) {
@@ -372,6 +363,8 @@ async function notifyHospitalOfResponse(
         } else {
             console.error("Could not notify hospital:", e);
         }
+
+        return false;
     }
 }
 

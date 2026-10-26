@@ -17,13 +17,15 @@ const {
 );
 
 /**
- * NEW. Runs when a donor taps "Respond Now": the app writes
+ * Runs when a donor taps "I can donate": the app writes
  * requests/{requestId}/responses/{donorId}.
  *
- * Before, nothing reacted to that write, so:
- *  - the request stayed "pending" forever and the scheduler kept widening the radius
- *    even after enough donors had accepted
- *  - the hospital was never told (flow picture: "Donor Confirmation" -> Hospital)
+ *  - counts the response on the request (in a transaction, so two donors answering at the
+ *    same moment never lose a count)
+ *  - tells the hospital
+ *
+ * STEP 2: the response document remembers what was done ("counted", "hospitalNotified"), so a
+ * redelivered event does not count the donor twice but DOES still send a push that was lost.
  */
 exports.onResponseCreated =
     onDocumentCreated(
@@ -41,27 +43,42 @@ exports.onResponseCreated =
             const requestRef =
                 db.collection("requests").doc(requestId);
 
-            // Transaction: two donors answering at the same moment must not lose a count
+            const responseRef =
+                event.data.ref;
+
             const result = await db.runTransaction(async (tx) => {
 
-                const snap = await tx.get(requestRef);
+                // all reads first, then the writes
+                const [requestSnap, responseSnap] = await Promise.all([
+                    tx.get(requestRef),
+                    tx.get(responseRef)
+                ]);
 
-                if (!snap.exists) {
+                if (!requestSnap.exists || !responseSnap.exists) {
                     return null;
                 }
 
-                const request = snap.data();
-
-                // Event delivered twice: this donor is already counted
-                if ((request.acceptedDonors || []).includes(donorId)) {
-                    return null;
-                }
-
-                const responseCount =
-                    (request.responseCount || 0) + 1;
+                const request = requestSnap.data();
+                const response = responseSnap.data();
 
                 const unitsNeeded =
                     Number(request.unitsRequired) || 1;
+
+                const acceptedDonors = request.acceptedDonors || [];
+
+                // Event delivered again: do not count this donor twice
+                if (response.counted === true || acceptedDonors.includes(donorId)) {
+
+                    return {
+                        request: { ...request, requestId },
+                        responseCount: Number(request.responseCount) || acceptedDonors.length || 1,
+                        unitsNeeded,
+                        needsPush: response.hospitalNotified !== true
+                    };
+                }
+
+                const responseCount =
+                    (Number(request.responseCount) || 0) + 1;
 
                 const update = {
                     responseCount,
@@ -73,29 +90,36 @@ exports.onResponseCreated =
                 }
 
                 // Enough donors said yes: stop widening the search
+                // (Step 3 replaces this with confirmed units)
                 if (request.status === "pending" && responseCount >= unitsNeeded) {
                     update.status = "accepted";
                 }
 
                 tx.update(requestRef, update);
+                tx.update(responseRef, { counted: true });
 
                 return {
                     request: { ...request, requestId },
                     responseCount,
-                    unitsNeeded
+                    unitsNeeded,
+                    needsPush: true
                 };
             });
 
-            if (!result) {
+            if (!result || !result.needsPush) {
                 return null;
             }
 
-            await notifyHospitalOfResponse(
+            const sent = await notifyHospitalOfResponse(
                 result.request,
                 donorId,
                 result.responseCount,
                 result.unitsNeeded
             );
+
+            if (sent) {
+                await responseRef.update({ hospitalNotified: true });
+            }
 
             return null;
         }
