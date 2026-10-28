@@ -10,6 +10,14 @@ const {
 } = require("./notificationService");
 
 const {
+    OPEN_STORED,
+    normalizeStatus,
+    isOpen,
+    expiryStatus,
+    needsMoreDonors
+} = require("../utils/requestStatus");
+
+const {
     RADIUS_STEPS_KM,
     EXPANSION_INTERVAL_MINUTES,
     REQUEST_EXPIRY_MINUTES,
@@ -21,15 +29,13 @@ const {
 } = require("../utils/config");
 
 const MINUTE = 60 * 1000;
-
-// Requests that can still be alerted ("searching" is the name planned for Step 3)
-const SEARCHING = new Set(["pending", "searching"]);
-
-// Requests that are still open: they are closed after REQUEST_EXPIRY_MINUTES
-const OPEN = new Set(["pending", "searching", "accepted"]);
+const HOUR = 60 * MINUTE;
 
 const SAVE_TRIES = 3;
 const SAVE_RETRY_MS = 500;
+
+// Requests written by the old scheduler / the old app: swept by creation time
+const LEGACY_SWEEP_LIMIT = 100;
 
 function millis(value) {
     return value && typeof value.toMillis === "function" ? value.toMillis() : null;
@@ -44,10 +50,36 @@ function sleep(ms) {
 }
 
 /**
+ * STEP 3: a request can carry its own deadline ("needed within N hours", requiredWithinHours).
+ *  - requiredBy = createdAt + N hours
+ *  - expiresAt  = requiredBy, or createdAt + REQUEST_EXPIRY_MINUTES when no deadline was given
+ * The deadline is computed here, from the SERVER time of createdAt, never from a phone clock.
+ */
+function planDeadlines(request, createdMs) {
+
+    const existingExpiry = millis(request.expiresAt);
+
+    if (createdMs === null) {
+        return { requiredByMs: null, expiresMs: existingExpiry };
+    }
+
+    const hours = Number(request.requiredWithinHours);
+
+    const requiredByMs = hours > 0 ? createdMs + hours * HOUR : null;
+
+    const expiresMs =
+        existingExpiry ??
+        requiredByMs ??
+        createdMs + REQUEST_EXPIRY_MINUTES * MINUTE;
+
+    return { requiredByMs, expiresMs };
+}
+
+/**
  * Step 1 of every alert: CLAIM the request inside a transaction.
  *
- * The transaction re-reads the request, so it knows the CURRENT status (a cancelled or
- * closed request is never alerted) and it is the only place that decides who may send:
+ * The transaction re-reads the request, so it knows the CURRENT status (a cancelled, fulfilled
+ * or expired request is never alerted) and it is the only place that decides who may send:
  *  - the same step is never sent twice (a duplicate event, or two scheduler runs at once,
  *    finds the lease taken or the next step not due yet)
  *  - the claim also writes a "retry deadline" (nextExpansionAt), so if this function crashes
@@ -70,17 +102,20 @@ async function claimStep(ref) {
         const r = snap.data();
         const now = Date.now();
 
-        if (!OPEN.has(r.status)) {
+        const status = normalizeStatus(r.status);
+
+        if (!isOpen(status)) {
             return { outcome: "inactive" };
         }
 
-        // Too old: close it
+        // Deadline passed: close it ("expired", or "unfulfilled" when some units were confirmed)
         const createdMs = millis(r.createdAt);
+        const { requiredByMs, expiresMs } = planDeadlines(r, createdMs);
 
-        if (createdMs !== null && now >= createdMs + REQUEST_EXPIRY_MINUTES * MINUTE) {
+        if (expiresMs !== null && now >= expiresMs) {
 
             tx.update(ref, {
-                status: "expired",
+                status: expiryStatus(r),
                 expiredAt: FieldValue.serverTimestamp(),
                 claimUntil: FieldValue.delete(),
                 nextExpansionAt: FieldValue.delete()
@@ -89,9 +124,18 @@ async function claimStep(ref) {
             return { outcome: "expired" };
         }
 
-        // Open but not searching (for example enough donors answered): nothing to send
-        if (!SEARCHING.has(r.status)) {
-            return { outcome: "not_searching" };
+        // STEP 3: the search ends when the hospital confirmed all units, or when enough donors
+        // said yes (units x RESPONSE_CAP_FACTOR). A single "I can donate" never ends it.
+        if (!needsMoreDonors(r)) {
+
+            if (r.nextExpansionAt || r.claimUntil) {
+                tx.update(ref, {
+                    nextExpansionAt: FieldValue.delete(),
+                    claimUntil: FieldValue.delete()
+                });
+            }
+
+            return { outcome: "enough_donors" };
         }
 
         // Somebody else is sending this step right now
@@ -153,8 +197,17 @@ async function claimStep(ref) {
             alertAttempts: FieldValue.increment(1)
         };
 
-        if (!r.expiresAt && createdMs !== null) {
-            update.expiresAt = Timestamp.fromMillis(createdMs + REQUEST_EXPIRY_MINUTES * MINUTE);
+        // Old names ("pending", "accepted") become the new ones the first time a request is touched
+        if (r.status !== status) {
+            update.status = status;
+        }
+
+        if (!r.expiresAt && expiresMs !== null) {
+            update.expiresAt = Timestamp.fromMillis(expiresMs);
+        }
+
+        if (!r.requiredBy && requiredByMs !== null) {
+            update.requiredBy = Timestamp.fromMillis(requiredByMs);
         }
 
         tx.update(ref, update);
@@ -250,9 +303,10 @@ async function processRequest(ref) {
 
 /**
  * One scheduler run. It reads only the requests that need something:
- *  1. open requests older than REQUEST_EXPIRY_MINUTES   -> closed as "expired"
- *  2. requests whose next step is due (nextExpansionAt)  -> widen, or retry a crashed step
- *  3. requests that were never alerted at all            -> first alert (safety net)
+ *  1. open requests past their deadline (expiresAt)      -> closed
+ *  2. old requests that have no expiresAt yet            -> closed when 24 h old
+ *  3. requests whose next step is due (nextExpansionAt)  -> widen, or retry a crashed step
+ *  4. requests that were never alerted                   -> first alert (safety net)
  * claimStep() re-checks everything, so a stale query result can never cause a wrong alert.
  */
 async function runExpansionTick() {
@@ -284,23 +338,31 @@ async function runExpansionTick() {
         }
     }
 
-    const expireBefore = Timestamp.fromMillis(now - REQUEST_EXPIRY_MINUTES * MINUTE);
+    const open = [...OPEN_STORED];
 
-    for (const status of ["pending", "accepted"]) {
-        await collect(
-            `expire ${status}`,
-            requests
-                .where("status", "==", status)
-                .where("createdAt", "<=", expireBefore)
-                .limit(SCHEDULER_BATCH_SIZE)
-                .get()
-        );
-    }
+    await collect(
+        "past deadline",
+        requests
+            .where("status", "in", open)
+            .where("expiresAt", "<=", Timestamp.fromMillis(now))
+            .limit(SCHEDULER_BATCH_SIZE)
+            .get()
+    );
+
+    await collect(
+        "old without deadline",
+        requests
+            .where("status", "in", open)
+            .where("createdAt", "<=", Timestamp.fromMillis(now - REQUEST_EXPIRY_MINUTES * MINUTE))
+            .limit(LEGACY_SWEEP_LIMIT)
+            .get(),
+        (d) => !d.get("expiresAt")
+    );
 
     await collect(
         "due",
         requests
-            .where("status", "==", "pending")
+            .where("status", "in", open)
             .where("nextExpansionAt", "<=", Timestamp.fromMillis(now))
             .limit(SCHEDULER_BATCH_SIZE)
             .get()
@@ -311,7 +373,7 @@ async function runExpansionTick() {
     await collect(
         "never alerted",
         requests
-            .where("status", "==", "pending")
+            .where("status", "in", open)
             .where("createdAt", "<=", Timestamp.fromMillis(now - RESCUE_AFTER_MINUTES * MINUTE))
             .where("createdAt", ">=", Timestamp.fromMillis(now - RESCUE_WINDOW_MINUTES * MINUTE))
             .get(),

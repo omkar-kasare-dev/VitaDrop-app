@@ -16,6 +16,15 @@ const {
     "../services/notificationService"
 );
 
+const {
+    STATUS,
+    normalizeStatus,
+    isOpen,
+    deriveStatus
+} = require(
+    "../utils/requestStatus"
+);
+
 /**
  * Runs when a donor taps "I can donate": the app writes
  * requests/{requestId}/responses/{donorId}.
@@ -24,7 +33,11 @@ const {
  *    same moment never lose a count)
  *  - tells the hospital
  *
- * STEP 2: the response document remembers what was done ("counted", "hospitalNotified"), so a
+ * STEP 3: a response is a donor who is WILLING. It is not a unit of blood, so it no longer
+ * closes the request or stops the search. It only moves "searching" to "arranging". The
+ * request is fulfilled when the HOSPITAL confirms the units (fulfillmentService).
+ *
+ * The response document remembers what was done ("counted", "hospitalNotified"), so a
  * redelivered event does not count the donor twice but DOES still send a push that was lost.
  */
 exports.onResponseCreated =
@@ -89,10 +102,21 @@ exports.onResponseCreated =
                     update.acceptedBy = donorId;   // first donor who said yes
                 }
 
-                // Enough donors said yes: stop widening the search
-                // (Step 3 replaces this with confirmed units)
-                if (request.status === "pending" && responseCount >= unitsNeeded) {
-                    update.status = "accepted";
+                // An open request moves to the status that matches its numbers.
+                // (A fulfilled / cancelled / expired request keeps its status.)
+                if (isOpen(request.status)) {
+
+                    const next = deriveStatus({
+                        unitsRequired: unitsNeeded,
+                        unitsFulfilled: request.unitsFulfilled,
+                        responseCount
+                    });
+
+                    if (next !== STATUS.FULFILLED && next !== normalizeStatus(request.status)) {
+                        update.status = next;
+                    } else if (request.status !== normalizeStatus(request.status)) {
+                        update.status = normalizeStatus(request.status);   // old name -> new name
+                    }
                 }
 
                 tx.update(requestRef, update);

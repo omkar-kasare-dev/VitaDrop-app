@@ -128,7 +128,8 @@ service cloud.firestore {
           'requestId', 'requestedBy', 'hospitalId', 'patientName', 'bloodGroup', 'unitsRequired',
           'contactPerson', 'contactPhone', 'hospitalName', 'city', 'location', 'urgency', 'status',
           'description', 'acceptedDonors', 'rejectedDonors', 'completedBy', 'notificationRadius',
-          'acceptedBy', 'notifiedDonors', 'notificationStartedAt', 'emergency', 'createdBy', 'createdAt'
+          'acceptedBy', 'notifiedDonors', 'notificationStartedAt', 'emergency', 'createdBy', 'createdAt',
+          'bloodComponent', 'requiredWithinHours', 'patientBloodGroupVerified', 'unitsFulfilled', 'responseCount'
         ])
         && request.resource.data.requestId == requestId
         && request.resource.data.hospitalId == request.auth.uid
@@ -137,7 +138,7 @@ service cloud.firestore {
         && request.resource.data.hospitalName ==
              get(/databases/$(database)/documents/hospitals/$(request.auth.uid)).data.hospitalName
         // system fields must start in their initial state: a client cannot pre-fill them
-        && request.resource.data.status == 'pending'
+        && request.resource.data.status in ['pending', 'searching']
         && request.resource.data.get('acceptedBy', '') == ''
         && request.resource.data.get('acceptedDonors', []).size() == 0
         && request.resource.data.get('rejectedDonors', []).size() == 0
@@ -155,6 +156,14 @@ service cloud.firestore {
         && request.resource.data.urgency.size() > 0
         && request.resource.data.urgency.size() <= 20
         && request.resource.data.emergency is bool
+        && request.resource.data.get('bloodComponent', 'RED_CELLS') in ['RED_CELLS', 'WHOLE_BLOOD', 'PLATELETS', 'PLASMA']
+        && request.resource.data.get('requiredWithinHours', 24) is int
+        && request.resource.data.get('requiredWithinHours', 24) >= 1
+        && request.resource.data.get('requiredWithinHours', 24) <= 168
+        && request.resource.data.get('patientBloodGroupVerified', false) is bool
+        // confirmed units and responses are counted by Cloud Functions: a new request starts at 0
+        && request.resource.data.get('unitsFulfilled', 0) == 0
+        && request.resource.data.get('responseCount', 0) == 0
         && isRealLocation(request.resource.data.location)
         && request.resource.data.patientName is string
         && request.resource.data.patientName.size() > 0
@@ -170,7 +179,10 @@ service cloud.firestore {
 
         allow create: if signedIn() && request.auth.uid == donorId
           && activeDonor()
-          && get(/databases/$(database)/documents/requests/$(requestId)).data.status in ['pending', 'accepted']
+          && get(/databases/$(database)/documents/requests/$(requestId)).data.status
+               in ['pending', 'searching', 'accepted', 'arranging', 'partially_fulfilled']
+          && request.auth.uid
+               in get(/databases/$(database)/documents/requests/$(requestId)).data.get('notifiedDonors', [])
           && newKeysOnly(['donorId', 'requestId', 'status', 'responseTime'])
           && request.resource.data.donorId == donorId
           && request.resource.data.requestId == requestId

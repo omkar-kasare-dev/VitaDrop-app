@@ -20,7 +20,7 @@ module.exports = {
 
     // ---------------- STEP 2 ----------------
 
-    // A request that is still open after this long is closed with status "expired".
+    // A request without its own deadline is closed after this long.
     REQUEST_EXPIRY_MINUTES: 24 * 60,
 
     // One alert step "owns" a request for this long. If the function crashes, another one
@@ -36,5 +36,12 @@ module.exports = {
     RESCUE_WINDOW_MINUTES: 60,
 
     // Most requests handled per query in one scheduler run.
-    SCHEDULER_BATCH_SIZE: 25
+    SCHEDULER_BATCH_SIZE: 25,
+
+    // ---------------- STEP 3 ----------------
+
+    // The search keeps widening until the hospital has confirmed all units, OR until this many
+    // times the units needed have said "I can donate". One tap can never end the search,
+    // because donors may not show up or may be deferred at the centre.
+    RESPONSE_CAP_FACTOR: 2
 };

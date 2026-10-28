@@ -1,8 +1,10 @@
 const admin = require("firebase-admin");
 
 const {
-    COMPATIBILITY,
-    normalizeBloodGroup
+    COMPONENT_LABELS,
+    normalizeBloodGroup,
+    normalizeComponent,
+    candidateGroups
 } = require("../utils/bloodCompatibility");
 
 const {
@@ -66,6 +68,7 @@ async function notifyNearbyDonors(
         requestId,
         radiusKm,
         requestBloodGroup: requestData.bloodGroup || null,
+        component: normalizeComponent(requestData.bloodComponent),
         compatibleGroups: [],
         donorsWithCompatibleGroup: 0,
         skippedBlocked: 0,
@@ -93,7 +96,8 @@ async function notifyNearbyDonors(
         return { notifiedDonorIds: [], summary };
     }
 
-    const compatibleGroups = COMPATIBILITY[bloodGroup];
+    // STEP 3: red cells use the red-cell table, every other component the exact same group
+    const compatibleGroups = candidateGroups(bloodGroup, requestData.bloodComponent);
     summary.compatibleGroups = compatibleGroups;
 
     // ---------------- 2. WHERE IS THE PATIENT? ----------------
@@ -204,6 +208,7 @@ async function notifyNearbyDonors(
 
     const units = Number(requestData.unitsRequired) || 1;
     const hospitalName = requestData.hospitalName || "A hospital";
+    const componentLabel = COMPONENT_LABELS[summary.component];
 
     for (let i = 0; i < candidates.length; i += MULTICAST_LIMIT) {
 
@@ -216,14 +221,16 @@ async function notifyNearbyDonors(
                 tokens: chunk.map((c) => c.token),
 
                 notification: {
-                    title: `${bloodGroup} blood needed urgently`,
-                    body: `${hospitalName} needs ${units} unit(s) of ${bloodGroup} blood`
+                    title: `${bloodGroup} ${componentLabel} needed`,
+                    body: `${hospitalName} needs ${units} unit(s) of ${bloodGroup} ${componentLabel}. ` +
+                          `The blood centre will check if you can donate.`
                 },
 
                 data: {
                     type: "emergency_request",
                     requestId,
                     bloodGroup,
+                    bloodComponent: summary.component,
                     hospitalName: String(hospitalName),
                     city: String(requestData.city || ""),
                     radius: String(radiusKm)

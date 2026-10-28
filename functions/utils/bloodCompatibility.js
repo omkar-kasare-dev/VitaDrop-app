@@ -57,7 +57,54 @@ function normalizeBloodGroup(value) {
     return COMPATIBILITY[cleaned] ? cleaned : null;
 }
 
+// ---------------- STEP 3: the blood component ----------------
+
+const COMPONENT_LABELS = {
+    RED_CELLS: "red blood cells",
+    WHOLE_BLOOD: "whole blood",
+    PLATELETS: "platelets",
+    PLASMA: "plasma"
+};
+
+/** Anything unknown (and every request created before Step 3) counts as RED_CELLS, as before. */
+function normalizeComponent(value) {
+
+    const key = String(value || "")
+        .trim()
+        .toUpperCase()
+        .replace(/[\s-]+/g, "_");
+
+    return COMPONENT_LABELS[key] ? key : "RED_CELLS";
+}
+
+/**
+ * Which donor blood groups are worth ALERTING for this request.
+ *
+ *  - RED_CELLS: the red-cell table above.
+ *  - WHOLE_BLOOD, PLATELETS, PLASMA: the SAME group only. The red-cell table is wrong for
+ *    plasma (it works the other way round) and for platelets, so the safe choice for now is
+ *    an exact match.
+ *
+ * This only decides who gets a notification. It is never a compatibility decision:
+ * the blood bank tests and crossmatches every unit.
+ */
+function candidateGroups(patientBloodGroup, component) {
+
+    const group = normalizeBloodGroup(patientBloodGroup);
+
+    if (!group) {
+        return [];
+    }
+
+    return normalizeComponent(component) === "RED_CELLS"
+        ? COMPATIBILITY[group]
+        : [group];
+}
+
 module.exports = {
     COMPATIBILITY,
-    normalizeBloodGroup
+    COMPONENT_LABELS,
+    normalizeBloodGroup,
+    normalizeComponent,
+    candidateGroups
 };
