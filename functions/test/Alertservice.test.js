@@ -53,7 +53,8 @@ const cmp = (a, b) => (a && a.toMillis ? a.toMillis() : a) - (b && b.toMillis ? 
 const ops = {
     "==": (a, b) => a === b,
     "<=": (a, b) => a !== undefined && cmp(a, b) <= 0,
-    ">=": (a, b) => a !== undefined && cmp(a, b) >= 0
+    ">=": (a, b) => a !== undefined && cmp(a, b) >= 0,
+    "in": (a, values) => Array.isArray(values) && values.includes(a)
 };
 
 const fakeDb = {
@@ -181,15 +182,25 @@ test("a request from the old scheduler (no nextExpansionAt) still widens", async
     assert.strictEqual(docs.R1.notificationRadius, 10);
 });
 
-test("accepted, cancelled and completed requests are never alerted", async () => {
+
+test("legacy accepted requests can continue searching, while cancelled and completed requests are never alerted", async () => {
     docs.A = fresh({ status: "accepted" });
     docs.B = fresh({ status: "cancelled" });
     docs.C = fresh({ status: "completed" });
-    assert.strictEqual(await processRequest(ref("A")), "not_searching");
+
+    assert.strictEqual(await processRequest(ref("A")), "alerted");
     assert.strictEqual(await processRequest(ref("B")), "inactive");
     assert.strictEqual(await processRequest(ref("C")), "inactive");
-    assert.strictEqual(sent.length, 0);
+
+    assert.deepStrictEqual(sent, [
+        { id: "A", radius: RADIUS_STEPS_KM[0] }
+    ]);
+
+    assert.strictEqual(docs.A.status, "arranging");
+    assert.strictEqual(docs.B.status, "cancelled");
+    assert.strictEqual(docs.C.status, "completed");
 });
+
 
 test("a request older than the expiry is closed and not alerted", async () => {
     docs.R1 = fresh({ createdAt: ago(REQUEST_EXPIRY_MINUTES + 5) });

@@ -24,8 +24,10 @@ import com.social.vitadrop.data.repository.RequestRepositoryImpl
 import com.social.vitadrop.data.repository.ResponseRepositoryImpl
 import com.social.vitadrop.domain.model.UserRole
 import com.social.vitadrop.domain.usecase.CreateRequestUseCase
+import com.social.vitadrop.domain.usecase.DeclineRequestUseCase
 import com.social.vitadrop.domain.usecase.GetDashboardStatsUseCase
 import com.social.vitadrop.domain.usecase.GetDonorsUseCase
+import com.social.vitadrop.domain.usecase.GetMyResponseUseCase
 import com.social.vitadrop.domain.usecase.GetOpenRequestsUseCase
 import com.social.vitadrop.domain.usecase.GetProfileUseCase
 import com.social.vitadrop.domain.usecase.GetRequestByIdUseCase
@@ -326,8 +328,8 @@ private fun rememberEmergencyViewModel(): EmergencyViewModel =
                 val repository = ResponseRepositoryImpl(FirebaseFirestore.getInstance())
                 EmergencyViewModel(
                     respondToRequest = RespondToRequestUseCase(repository),
-                    hasAlreadyResponded = HasAlreadyRespondedUseCase(repository),
-                    observeResponseCount= ObserveResponseCountUseCase(repository)
+                    declineRequest = DeclineRequestUseCase(repository),
+                    getMyResponse = GetMyResponseUseCase(repository)
                 )
             }
         }

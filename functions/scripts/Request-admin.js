@@ -7,14 +7,16 @@
  *   $env:FIRESTORE_EMULATOR_HOST = "127.0.0.1:8080"
  *   node scripts/request-admin.js units  <requestId> <number>
  *   node scripts/request-admin.js cancel <requestId> [reason]
+ *   node scripts/request-admin.js outcome <requestId> <donorId> <arrived|no_show|not_arrived> [collected|deferred|not_started]
  */
 const admin = require("firebase-admin");
 
 admin.initializeApp({ projectId: process.env.GCLOUD_PROJECT });
 
 const { setUnitsFulfilled, cancelRequest } = require("../services/fulfillmentService");
+const { setResponseOutcome } = require("../services/responseService");
 
-const [command, requestId, value] = process.argv.slice(2);
+const [command, requestId, value, extra] = process.argv.slice(2);
 
 async function main() {
 
@@ -26,7 +28,15 @@ async function main() {
         return cancelRequest({ requestId, reason: process.argv.slice(4).join(" "), actorUid: null });
     }
 
-    throw new Error("Usage: node scripts/request-admin.js units <requestId> <number> | cancel <requestId> [reason]");
+    if (command === "outcome" && requestId && value) {
+        // here "value" is the donor id, the next two words are attendance and donation
+        const [, , , attendance, donation] = process.argv.slice(2);
+        return setResponseOutcome({
+            requestId, donorId: value, attendance, donation: donation || undefined, actorUid: null
+        });
+    }
+
+    throw new Error("Usage: node scripts/request-admin.js units <requestId> <number> | cancel <requestId> [reason] | outcome <requestId> <donorId> <attendance> [donation]");
 }
 
 main()

@@ -70,7 +70,7 @@ test("a response is counted once and the hospital is told", async () => {
     assert.strictEqual(store["requests/R1"].responseCount, 1);
     assert.deepStrictEqual(store["requests/R1"].acceptedDonors, ["D1"]);
     assert.strictEqual(store["requests/R1"].acceptedBy, "D1");
-    assert.strictEqual(store["requests/R1"].status, "pending", "1 of 2 donors: still searching");
+    assert.strictEqual(store["requests/R1"].status, "arranging");
     assert.strictEqual(store["requests/R1/responses/D1"].counted, true);
     assert.strictEqual(store["requests/R1/responses/D1"].hospitalNotified, true);
     assert.strictEqual(pushes.length, 1);
@@ -80,7 +80,7 @@ test("enough donors stops the search", async () => {
     await run("D1");
     await run("D2");
     assert.strictEqual(store["requests/R1"].responseCount, 2);
-    assert.strictEqual(store["requests/R1"].status, "accepted");
+    assert.strictEqual(store["requests/R1"].status, "arranging");
 });
 
 test("a redelivered event neither recounts nor pushes again", async () => {

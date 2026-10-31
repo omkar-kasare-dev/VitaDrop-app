@@ -8,7 +8,7 @@ const {
 } = require("./triggers/requestTrigger");
 
 const {
-    onResponseCreated
+    onResponseWritten
 } = require("./triggers/responseTrigger");
 
 const {
@@ -23,16 +23,18 @@ const {
 
 const {
     setRequestUnits,
-    cancelBloodRequest
+    cancelBloodRequest,
+    setDonorOutcome
 } = require("./api/requestActions");
 
 // 1) hospital creates a request   -> first alert (5 km)
 exports.onRequestCreated =
     onRequestCreated;
 
-// 2) donor taps "I can donate"     -> counts the response, tells the hospital
-exports.onResponseCreated =
-    onResponseCreated;
+// 2) a donor answers, changes their mind, or the hospital records arrival / donation
+//    -> the request is brought in line with ALL its responses, the hospital is told once
+exports.onResponseWritten =
+    onResponseWritten;
 
 // 3) nobody answered after 5 min   -> widen to 10 km, then 15 km (also retries and expiry)
 exports.radiusExpansionScheduler =
@@ -46,3 +48,6 @@ exports.syncRequestStats = syncRequestStats;
 // 5) STEP 3: the hospital confirms units / cancels (callable from the app)
 exports.setRequestUnits = setRequestUnits;
 exports.cancelBloodRequest = cancelBloodRequest;
+
+// 6) STEP 4: the hospital records whether an accepted donor arrived and what happened
+exports.setDonorOutcome = setDonorOutcome;

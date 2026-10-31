@@ -14,7 +14,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 object FirebaseProvider {
 
     // Replace this value with your computer's actual Wi-Fi IPv4 address.
-    private const val EMULATOR_HOST = "10.61.189.225"
+    private const val EMULATOR_HOST = "10.112.149.225"
 
     fun configure(application: Application) {
         val isDebuggable =

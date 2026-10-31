@@ -55,6 +55,14 @@ class RequestRepositoryImpl : RequestRepository {
                 "patientName" to request.patientName,
                 "bloodGroup" to request.bloodGroup,
                 "unitsRequired" to request.unitsRequired.toLong(),
+                // Updated Values 28/10/26
+                "bloodComponent" to request.bloodComponent.key,
+                "patientBloodGroupVerified" to request.patientBloodGroupVerified,
+                "requiredWithinHours" to request.requiredWithinHours,
+                // counted by Cloud Functions: a new request always starts at 0
+                "unitsFulfilled" to 0L,
+                "responseCount" to 0L,
+                //--------------------------------------------> END
                 "contactPerson" to request.contactPerson,
                 "contactPhone" to request.contactPhone,
                 "city" to request.city,
@@ -63,7 +71,8 @@ class RequestRepositoryImpl : RequestRepository {
                     "longitude" to request.longitude
                 ),
                 "urgency" to request.urgency.key,
-                "status" to "pending",
+                // 28/10/2026 Did changed requestStatus= "pending" to "searching"
+                "status" to "searching",
                 "description" to request.description,
                 "emergency" to request.isEmergency,
                 "createdAt" to FieldValue.serverTimestamp()

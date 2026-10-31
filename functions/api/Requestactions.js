@@ -9,6 +9,10 @@ const {
     cancelRequest
 } = require("../services/fulfillmentService");
 
+const {
+    setResponseOutcome
+} = require("../services/responseService");
+
 /**
  * Callable functions for the hospital app. The caller's identity comes from Firebase Auth
  * (request.auth), never from the data the app sends. Which hospital may change which request
@@ -52,5 +56,22 @@ exports.cancelBloodRequest =
     onCall(
         wrap((uid, data) =>
             cancelRequest({ requestId: data.requestId, reason: data.reason, actorUid: uid })
+        )
+    );
+
+/**
+ * data: { requestId, donorId, attendance?: "not_arrived" | "arrived" | "no_show",
+ *                            donation?: "not_started" | "deferred" | "collected" }
+ */
+exports.setDonorOutcome =
+    onCall(
+        wrap((uid, data) =>
+            setResponseOutcome({
+                requestId: data.requestId,
+                donorId: data.donorId,
+                attendance: data.attendance,
+                donation: data.donation,
+                actorUid: uid
+            })
         )
     );

@@ -1,11 +1,7 @@
 const admin = require("firebase-admin");
 
 const {
-    FieldValue
-} = require("firebase-admin/firestore");
-
-const {
-    onDocumentCreated
+    onDocumentWritten
 } = require(
     "firebase-functions/v2/firestore"
 );
@@ -17,31 +13,40 @@ const {
 );
 
 const {
-    STATUS,
-    normalizeStatus,
-    isOpen,
-    deriveStatus
+    syncRequestWithResponses
+} = require(
+    "../services/responseService"
+);
+
+const {
+    isOpen
 } = require(
     "../utils/requestStatus"
 );
 
+const {
+    RESPONSE,
+    readResponse
+} = require(
+    "../utils/responseStatus"
+);
+
 /**
- * Runs when a donor taps "I can donate": the app writes
- * requests/{requestId}/responses/{donorId}.
+ * Runs whenever a donor's response is created or changed
+ * (requests/{requestId}/responses/{donorId}):
+ *  - a donor says "I can donate", declines, withdraws or changes their mind
+ *  - the hospital records arrival and donation (through the setDonorOutcome function)
  *
- *  - counts the response on the request (in a transaction, so two donors answering at the
- *    same moment never lose a count)
- *  - tells the hospital
+ * STEP 4: the request is brought in line with ALL its responses (syncRequestWithResponses), so
+ * the numbers can go down as well as up. A donor who withdraws, does not show up or is deferred
+ * stops counting, and the search starts again if more donors are needed.
  *
- * STEP 3: a response is a donor who is WILLING. It is not a unit of blood, so it no longer
- * closes the request or stops the search. It only moves "searching" to "arranging". The
- * request is fulfilled when the HOSPITAL confirms the units (fulfillmentService).
- *
- * The response document remembers what was done ("counted", "hospitalNotified"), so a
- * redelivered event does not count the donor twice but DOES still send a push that was lost.
+ * The hospital gets ONE push for each donor who says yes. "hospitalNotified" is set before the
+ * push is sent, so two events at the same moment cannot send it twice, and it is cleared again
+ * if the push fails.
  */
-exports.onResponseCreated =
-    onDocumentCreated(
+exports.onResponseWritten =
+    onDocumentWritten(
         "requests/{requestId}/responses/{donorId}",
 
         async (event) => {
@@ -51,98 +56,58 @@ exports.onResponseCreated =
                 donorId
             } = event.params;
 
-            const db = admin.firestore();
+            await syncRequestWithResponses(requestId);
 
-            const requestRef =
-                db.collection("requests").doc(requestId);
+            const after = event.data.after;
 
-            const responseRef =
-                event.data.ref;
-
-            const result = await db.runTransaction(async (tx) => {
-
-                // all reads first, then the writes
-                const [requestSnap, responseSnap] = await Promise.all([
-                    tx.get(requestRef),
-                    tx.get(responseRef)
-                ]);
-
-                if (!requestSnap.exists || !responseSnap.exists) {
-                    return null;
-                }
-
-                const request = requestSnap.data();
-                const response = responseSnap.data();
-
-                const unitsNeeded =
-                    Number(request.unitsRequired) || 1;
-
-                const acceptedDonors = request.acceptedDonors || [];
-
-                // Event delivered again: do not count this donor twice
-                if (response.counted === true || acceptedDonors.includes(donorId)) {
-
-                    return {
-                        request: { ...request, requestId },
-                        responseCount: Number(request.responseCount) || acceptedDonors.length || 1,
-                        unitsNeeded,
-                        needsPush: response.hospitalNotified !== true
-                    };
-                }
-
-                const responseCount =
-                    (Number(request.responseCount) || 0) + 1;
-
-                const update = {
-                    responseCount,
-                    acceptedDonors: FieldValue.arrayUnion(donorId)
-                };
-
-                if (!request.acceptedBy) {
-                    update.acceptedBy = donorId;   // first donor who said yes
-                }
-
-                // An open request moves to the status that matches its numbers.
-                // (A fulfilled / cancelled / expired request keeps its status.)
-                if (isOpen(request.status)) {
-
-                    const next = deriveStatus({
-                        unitsRequired: unitsNeeded,
-                        unitsFulfilled: request.unitsFulfilled,
-                        responseCount
-                    });
-
-                    if (next !== STATUS.FULFILLED && next !== normalizeStatus(request.status)) {
-                        update.status = next;
-                    } else if (request.status !== normalizeStatus(request.status)) {
-                        update.status = normalizeStatus(request.status);   // old name -> new name
-                    }
-                }
-
-                tx.update(requestRef, update);
-                tx.update(responseRef, { counted: true });
-
-                return {
-                    request: { ...request, requestId },
-                    responseCount,
-                    unitsNeeded,
-                    needsPush: true
-                };
-            });
-
-            if (!result || !result.needsPush) {
+            if (!after.exists) {
                 return null;
             }
 
+            const response = readResponse(after.data());
+
+            if (response.responseStatus !== RESPONSE.ACCEPTED || after.get("hospitalNotified") === true) {
+                return null;
+            }
+
+            const db = admin.firestore();
+
+            const requestSnap =
+                await db.collection("requests").doc(requestId).get();
+
+            if (!requestSnap.exists || !isOpen(requestSnap.get("status"))) {
+                return null;
+            }
+
+            // Claim the push first (transaction), so it is sent at most once
+            const claimed = await db.runTransaction(async (tx) => {
+
+                const fresh = await tx.get(after.ref);
+
+                if (!fresh.exists || fresh.get("hospitalNotified") === true) {
+                    return false;
+                }
+
+                tx.update(after.ref, { hospitalNotified: true });
+
+                return true;
+            });
+
+            if (!claimed) {
+                return null;
+            }
+
+            const request = { ...requestSnap.data(), requestId };
+
             const sent = await notifyHospitalOfResponse(
-                result.request,
+                request,
                 donorId,
-                result.responseCount,
-                result.unitsNeeded
+                Number(request.responseCount) || 1,
+                Number(request.unitsRequired) || 1
             );
 
-            if (sent) {
-                await responseRef.update({ hospitalNotified: true });
+            if (!sent) {
+                await after.ref.update({ hospitalNotified: false });
             }
 
             return null;

@@ -7,7 +7,7 @@ const {
     initializeTestEnvironment, assertFails, assertSucceeds
 } = require("@firebase/rules-unit-testing");
 const {
-    doc, getDoc, getDocs, collection, setDoc, updateDoc, serverTimestamp, Timestamp
+    doc, getDoc, getDocs, collection, setDoc, updateDoc, deleteDoc, serverTimestamp, Timestamp
 } = require("firebase/firestore");
 
 let env;
@@ -53,6 +53,11 @@ beforeEach(async () => {
         await setDoc(doc(f, "requests/R1"), { hospitalId: "H1", status: "searching", notifiedDonors: ["D1"] });
         await setDoc(doc(f, "requests/RF"), { hospitalId: "H1", status: "fulfilled", notifiedDonors: ["D1"] });
         await setDoc(doc(f, "requests/RA"), { hospitalId: "H1", status: "arranging", notifiedDonors: ["D1"] });
+        await setDoc(doc(f, "requests/RU"), { hospitalId: "H1", status: "arranging", notifiedDonors: ["D1", "D2"] });
+        await setDoc(doc(f, "requests/RU/responses/D1"), { donorId: "D1", requestId: "RU", responseStatus: "accepted", attendanceStatus: "not_arrived", donationStatus: "not_started" });
+        await setDoc(doc(f, "requests/RU/responses/D2"), { donorId: "D2", requestId: "RU", responseStatus: "accepted", attendanceStatus: "arrived", donationStatus: "not_started" });
+        await setDoc(doc(f, "requests/RL"), { hospitalId: "H1", status: "searching", notifiedDonors: ["D1"] });
+        await setDoc(doc(f, "requests/RL/responses/D1"), { donorId: "D1", requestId: "RL", status: "accepted", responseTime: 1 });
         await setDoc(doc(f, "donorDirectory/D1"), { fullName: "Test Donor", bloodGroup: "O+" });
         await setDoc(doc(f, "stats/global"), { donorsCount: 2 });
     });
@@ -137,7 +142,10 @@ it("nobody can update a request from the client", () =>
     assertFails(updateDoc(doc(db("H1"), "requests/R1"), { status: "completed" })));
 
 // ---------- responses ----------
-const response = (donorId) => ({ donorId, requestId: "R1", status: "accepted", responseTime: Date.now() });
+const response = (donorId, requestId = "R1", over = {}) => ({
+    donorId, requestId, responseStatus: "accepted", attendanceStatus: "not_arrived",
+    donationStatus: "not_started", respondedAt: serverTimestamp(), ...over
+});
 
 it("a donor can respond as themselves", () =>
     assertSucceeds(setDoc(doc(db("D1"), "requests/R1/responses/D1"), response("D1"))));
@@ -149,9 +157,51 @@ it("a donor cannot respond to a request that was not sent to them", () =>
     assertFails(setDoc(doc(db("D2"), "requests/R1/responses/D2"), response("D2"))));
 
 it("a donor cannot respond to a fulfilled request, but can while it is arranging", async () => {
-    await assertFails(setDoc(doc(db("D1"), "requests/RF/responses/D1"), response("D1")));
-    await assertSucceeds(setDoc(doc(db("D1"), "requests/RA/responses/D1"), response("D1")));
+    await assertFails(setDoc(doc(db("D1"), "requests/RF/responses/D1"), response("D1", "RF")));
+    await assertSucceeds(setDoc(doc(db("D1"), "requests/RA/responses/D1"), response("D1", "RA")));
 });
+
+it("a donor can decline, but cannot invent another status", async () => {
+    await assertSucceeds(setDoc(doc(db("D1"), "requests/R1/responses/D1"), response("D1", "R1", { responseStatus: "declined" })));
+    await assertFails(setDoc(doc(db("D1"), "requests/RA/responses/D1"), response("D1", "RA", { responseStatus: "withdrawn" })));
+    await assertFails(setDoc(doc(db("D1"), "requests/RA/responses/D1"), response("D1", "RA", { responseStatus: "maybe" })));
+});
+
+it("a donor cannot start with attendance or donation already recorded", async () => {
+    await assertFails(setDoc(doc(db("D1"), "requests/R1/responses/D1"), response("D1", "R1", { attendanceStatus: "arrived" })));
+    await assertFails(setDoc(doc(db("D1"), "requests/R1/responses/D1"), response("D1", "R1", { donationStatus: "collected" })));
+});
+
+it("the response time is the server's, not the phone's", () =>
+    assertFails(setDoc(doc(db("D1"), "requests/R1/responses/D1"), response("D1", "R1", { respondedAt: new Date("2020-01-01") }))));
+
+it("a donor can withdraw and change their mind before the hospital records the visit", async () => {
+    const ref = doc(db("D1"), "requests/RU/responses/D1");
+    await assertSucceeds(updateDoc(ref, { responseStatus: "withdrawn", respondedAt: serverTimestamp() }));
+    await assertSucceeds(updateDoc(ref, { responseStatus: "accepted", respondedAt: serverTimestamp() }));
+});
+
+it("a donor cannot change anything once the hospital recorded their visit", () =>
+    assertFails(updateDoc(doc(db("D2"), "requests/RU/responses/D2"), { responseStatus: "withdrawn", respondedAt: serverTimestamp() })));
+
+it("a donor cannot touch attendance, donation or the hospital's fields", async () => {
+    const ref = doc(db("D1"), "requests/RU/responses/D1");
+    await assertFails(updateDoc(ref, { attendanceStatus: "arrived" }));
+    await assertFails(updateDoc(ref, { donationStatus: "collected" }));
+    await assertFails(updateDoc(ref, { hospitalNotified: true }));
+    await assertFails(updateDoc(ref, { responseStatus: "withdrawn", respondedAt: serverTimestamp(), donationStatus: "collected" }));
+});
+
+it("a donor cannot change someone else's response, and a hospital cannot change a response from the app", async () => {
+    await assertFails(updateDoc(doc(db("D1"), "requests/RU/responses/D2"), { responseStatus: "withdrawn", respondedAt: serverTimestamp() }));
+    await assertFails(updateDoc(doc(db("H1"), "requests/RU/responses/D1"), { attendanceStatus: "arrived" }));
+});
+
+it("a response written before Step 4 (no responseStatus) can still be withdrawn", () =>
+    assertSucceeds(updateDoc(doc(db("D1"), "requests/RL/responses/D1"), { responseStatus: "withdrawn", respondedAt: serverTimestamp() })));
+
+it("a response cannot be deleted", () =>
+    assertFails(deleteDoc(doc(db("D1"), "requests/RU/responses/D1"))));
 
 it("a hospital cannot respond", () =>
     assertFails(setDoc(doc(db("H1"), "requests/R1/responses/H1"), response("H1"))));

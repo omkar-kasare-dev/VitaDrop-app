@@ -165,6 +165,7 @@ async function cancelRequest({ requestId, reason, actorUid }) {
 
 module.exports = {
     ActionError,
+    assertCanManage,
     setUnitsFulfilled,
     cancelRequest
 };
