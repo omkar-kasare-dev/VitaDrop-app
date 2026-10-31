@@ -177,19 +177,37 @@ service cloud.firestore {
         allow get: if signedIn() && (request.auth.uid == donorId || requestOwner(requestId));
         allow list: if requestOwner(requestId);
 
+        // A donor answers a request that is still open AND was sent to them: "accepted" (I can
+        // donate) or "declined" (not available). Attendance and donation always start at their
+        // first value: only the hospital changes them, through a Cloud Function.
         allow create: if signedIn() && request.auth.uid == donorId
           && activeDonor()
           && get(/databases/$(database)/documents/requests/$(requestId)).data.status
                in ['pending', 'searching', 'accepted', 'arranging', 'partially_fulfilled']
           && request.auth.uid
                in get(/databases/$(database)/documents/requests/$(requestId)).data.get('notifiedDonors', [])
-          && newKeysOnly(['donorId', 'requestId', 'status', 'responseTime'])
+          && newKeysOnly(['donorId', 'requestId', 'responseStatus', 'attendanceStatus', 'donationStatus', 'respondedAt'])
           && request.resource.data.donorId == donorId
           && request.resource.data.requestId == requestId
-          && request.resource.data.status == 'accepted'
-          && request.resource.data.responseTime is int;
+          && request.resource.data.responseStatus in ['accepted', 'declined']
+          && request.resource.data.attendanceStatus == 'not_arrived'
+          && request.resource.data.donationStatus == 'not_started'
+          && request.resource.data.respondedAt == request.time;
 
-        allow update, delete: if false;
+        // A donor may change their mind (accept, decline, withdraw) until the hospital has
+        // recorded their visit. Nothing else in the document can be changed from the app.
+        allow update: if signedIn() && request.auth.uid == donorId
+          && activeDonor()
+          && get(/databases/$(database)/documents/requests/$(requestId)).data.status
+               in ['pending', 'searching', 'accepted', 'arranging', 'partially_fulfilled']
+          && resource.data.get('attendanceStatus', 'not_arrived') == 'not_arrived'
+          && resource.data.get('donationStatus', 'not_started') == 'not_started'
+          && changedOnly(['responseStatus', 'respondedAt'])
+          && request.resource.data.responseStatus in ['accepted', 'declined', 'withdrawn']
+          && request.resource.data.responseStatus != resource.data.get('responseStatus', 'accepted')
+          && request.resource.data.respondedAt == request.time;
+
+        allow delete: if false;
       }
     }
   }
